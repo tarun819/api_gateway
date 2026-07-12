@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Gateway Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0f0f1a;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      padding: 24px 32px;
+      border-bottom: 1px solid #2a2a4a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      background: linear-gradient(90deg, #00d2ff, #7b68ee);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #888;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      padding: 24px 32px;
+    }
+
+    .stat-card {
+      background: linear-gradient(145deg, #1a1a2e, #16213e);
+      border: 1px solid #2a2a4a;
+      border-radius: 12px;
+      padding: 20px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: #7b68ee44;
+    }
+
+    .stat-card .label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #00d2ff, #7b68ee);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 0 32px 24px;
+    }
+
+    .chart-container {
+      background: linear-gradient(145deg, #1a1a2e, #16213e);
+      border: 1px solid #2a2a4a;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .chart-container h3 {
+      font-size: 14px;
+      color: #aaa;
+      margin-bottom: 12px;
+    }
+
+    .backends-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      padding: 0 32px 24px;
+    }
+
+    .backend-card {
+      background: linear-gradient(145deg, #1a1a2e, #16213e);
+      border: 1px solid #2a2a4a;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      transition: border-color 0.3s;
+    }
+
+    .backend-card.up { border-color: #4ade8055; }
+    .backend-card.down { border-color: #ef444455; }
+
+    .backend-card .port {
+      font-size: 18px;
+      font-weight: 700;
+      color: #e0e0e0;
+    }
+
+    .backend-card .health {
+      font-size: 12px;
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .backend-card.up .health { color: #4ade80; }
+    .backend-card.down .health { color: #ef4444; }
+
+    .backend-card .requests {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #666;
+      padding: 0 32px 8px;
+    }
+
+    @media (max-width: 768px) {
+      .charts { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚡ API Gateway Dashboard</h1>
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      <span>Live — polling every 2s</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="stat-card">
+      <div class="label">Total Requests</div>
+      <div class="value" id="total">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Blocked (429)</div>
+      <div class="value" id="blocked">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Redis Fallbacks</div>
+      <div class="value" id="fallbacks">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Uptime</div>
+      <div class="value" id="uptime">0s</div>
+    </div>
+  </div>
+
+  <div class="section-title">Traffic Over Time</div>
+  <div class="charts">
+    <div class="chart-container">
+      <h3>Requests / sec</h3>
+      <canvas id="rpsChart"></canvas>
+    </div>
+    <div class="chart-container">
+      <h3>Block Rate (429s)</h3>
+      <canvas id="blockChart"></canvas>
+    </div>
+  </div>
+
+  <div class="section-title">Backend Health</div>
+  <div class="backends-grid" id="backends"></div>
+
+  <script>
+    const MAX_POINTS = 60;
+    let prevTotal = 0;
+    let prevBlocked = 0;
+
+    const rpsData = { labels: [], datasets: [{ label: 'req/s', data: [], borderColor: '#00d2ff', backgroundColor: '#00d2ff22', fill: true, tension: 0.4 }] };
+    const blockData = { labels: [], datasets: [{ label: '429/s', data: [], borderColor: '#ef4444', backgroundColor: '#ef444422', fill: true, tension: 0.4 }] };
+
+    const chartOpts = {
+      responsive: true,
+      animation: { duration: 300 },
+      scales: {
+        x: { display: false },
+        y: { beginAtZero: true, ticks: { color: '#666' }, grid: { color: '#ffffff08' } }
+      },
+      plugins: { legend: { display: false } }
+    };
+
+    const rpsChart = new Chart(document.getElementById('rpsChart'), { type: 'line', data: rpsData, options: chartOpts });
+    const blockChart = new Chart(document.getElementById('blockChart'), { type: 'line', data: blockData, options: chartOpts });
+
+    function formatUptime(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      if (h > 0) return `${h}h ${m}m`;
+      if (m > 0) return `${m}m ${s}s`;
+      return `${s}s`;
+    }
+
+    async function fetchMetrics() {
+      try {
+        const res = await fetch('/metrics');
+        const data = await res.json();
+
+        document.getElementById('total').textContent = data.totalRequests.toLocaleString();
+        document.getElementById('blocked').textContent = data.blockedRequests.toLocaleString();
+        document.getElementById('fallbacks').textContent = data.redisFallbacks.toLocaleString();
+        document.getElementById('uptime').textContent = formatUptime(data.uptime);
+
+        // Calculate rates
+        const rps = (data.totalRequests - prevTotal) / 2;
+        const bps = (data.blockedRequests - prevBlocked) / 2;
+        prevTotal = data.totalRequests;
+        prevBlocked = data.blockedRequests;
+
+        const now = new Date().toLocaleTimeString();
+        rpsData.labels.push(now);
+        rpsData.datasets[0].data.push(rps);
+        blockData.labels.push(now);
+        blockData.datasets[0].data.push(bps);
+
+        if (rpsData.labels.length > MAX_POINTS) {
+          rpsData.labels.shift(); rpsData.datasets[0].data.shift();
+          blockData.labels.shift(); blockData.datasets[0].data.shift();
+        }
+
+        rpsChart.update();
+        blockChart.update();
+
+        // Backend health cards
+        const backendsEl = document.getElementById('backends');
+        backendsEl.innerHTML = '';
+        for (const [port, status] of Object.entries(data.backendHealth)) {
+          const requests = data.requestsPerBackend[port] || 0;
+          backendsEl.innerHTML += `
+            <div class="backend-card ${status}">
+              <div class="port">:${port}</div>
+              <div class="health">${status === 'up' ? '● Healthy' : '● Down'}</div>
+              <div class="requests">${requests.toLocaleString()} requests</div>
+            </div>`;
+        }
+      } catch (e) {
+        console.error('Failed to fetch metrics:', e);
+      }
+    }
+
+    fetchMetrics();
+    setInterval(fetchMetrics, 2000);
+  </script>
+</body>
+</html>
