@@ -1,59 +1,62 @@
-// Sliding Window Counter rate limiter — JS wrapper around the Lua script
+// src/rateLimiter/slidingWindow.js
+// JavaScript wrapper for the Sliding Window Counter Lua script in Redis.
+
 const fs = require('fs');
 const path = require('path');
 const Redis = require('ioredis');
 const config = require('../config');
 
-const redis = new Redis(config.redis);
-const luaScript = fs.readFileSync(path.join(__dirname, 'slidingWindow.lua'), 'utf8');
+const redis = new Redis({
+  host: config.redis.host,
+  port: config.redis.port,
+  lazyConnect: false,
+});
 
-let scriptSha = null;
+redis.on('connect', () => {
+  console.log(`[SlidingWindow] Connected to Redis at ${config.redis.host}:${config.redis.port}`);
+});
 
-async function loadScript() {
-  scriptSha = await redis.script('load', luaScript);
-}
+redis.on('error', (err) => {
+  console.error(`[SlidingWindow] Redis connection error: ${err.message}`);
+});
 
-async function checkLimit(ip) {
-  const key = `ratelimit:sw:${ip}`;
+const luaScript = fs.readFileSync(
+  path.join(__dirname, 'slidingWindow.lua'),
+  'utf-8'
+);
+
+redis.defineCommand('slidingWindow', {
+  numberOfKeys: 1,
+  lua: luaScript,
+});
+
+const KEY_PREFIX = 'ratelimit:sw:';
+
+async function isAllowed(ip) {
+  const key = KEY_PREFIX + ip;
   const now = Date.now();
 
   try {
-    if (!scriptSha) await loadScript();
+    const result = await redis.slidingWindow(
+      key,
+      config.rateLimit.maxRequests,
+      config.rateLimit.windowSizeMs,
+      now
+    );
 
-    let result;
-    try {
-      result = await redis.evalsha(scriptSha, 1, key, config.rateLimit.capacity, config.rateLimit.windowSizeMs, now);
-    } catch (err) {
-      if (err.message.includes('NOSCRIPT')) {
-        await loadScript();
-        result = await redis.evalsha(scriptSha, 1, key, config.rateLimit.capacity, config.rateLimit.windowSizeMs, now);
-      } else {
-        throw err;
-      }
-    }
+    const allowed = result[0] === 1;
+    const remaining = result[1];
 
-    return {
-      allowed: result[0] === 1,
-      remaining: result[1],
-      retryAfter: result[2],
-      limit: config.rateLimit.capacity,
-      fallback: false,
-    };
+    return { allowed, remaining };
   } catch (err) {
-    // Fail open: if Redis is down, allow the request
-    console.error(`[RateLimit] Redis error, failing open: ${err.message}`);
-    return {
-      allowed: true,
-      remaining: -1,
-      retryAfter: 0,
-      limit: config.rateLimit.capacity,
-      fallback: true,
-    };
+    console.error(`[SlidingWindow] Redis error, failing open: ${err.message}`);
+    return { allowed: true, remaining: -1 };
   }
 }
 
-function getRedisClient() {
-  return redis;
+async function close() {
+  await redis.quit();
+  console.log('[SlidingWindow] Redis connection closed');
 }
 
-module.exports = { checkLimit, getRedisClient };
+module.exports = { isAllowed, close };

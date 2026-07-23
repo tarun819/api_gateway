@@ -1,65 +1,79 @@
-// Health check — pings each backend's /health endpoint on a timer
+// src/healthCheck.js
+// Background health checker — periodically pings /health endpoints to update status map.
+
 const http = require('http');
 const config = require('./config');
 
-const status = new Map(); // port → 'up' | 'down'
+const status = {};
+config.backends.forEach((backend) => {
+  status[backend.port] = 'up';
+});
 
-// Initialize all backends as 'up'
-config.backends.forEach(b => status.set(b.port, 'up'));
+function getStatus(port) {
+  return status[port] || 'down';
+}
+
+function getAllStatuses() {
+  return { ...status };
+}
 
 function checkBackend(backend) {
-  const req = http.get({
+  const options = {
     hostname: backend.host,
     port: backend.port,
     path: config.healthCheck.path,
+    method: 'GET',
     timeout: config.healthCheck.timeoutMs,
-  }, (res) => {
+  };
+
+  const req = http.request(options, (res) => {
+    res.resume(); // Consume data to free socket memory
+
+    const previousStatus = status[backend.port];
     const newStatus = res.statusCode === 200 ? 'up' : 'down';
-    const prev = status.get(backend.port);
-    status.set(backend.port, newStatus);
-    if (prev !== newStatus) {
-      console.log(`[Health] Backend ${backend.port}: ${prev} → ${newStatus}`);
+    status[backend.port] = newStatus;
+
+    if (previousStatus !== newStatus) {
+      console.log(`[HealthCheck] Backend ${backend.port}: ${previousStatus} → ${newStatus}`);
     }
   });
 
-  req.on('error', () => {
-    const prev = status.get(backend.port);
-    status.set(backend.port, 'down');
-    if (prev !== 'down') {
-      console.log(`[Health] Backend ${backend.port}: ${prev} → down (unreachable)`);
+  req.on('error', (err) => {
+    const previousStatus = status[backend.port];
+    status[backend.port] = 'down';
+
+    if (previousStatus !== 'down') {
+      console.log(`[HealthCheck] Backend ${backend.port}: ${previousStatus} → down (${err.message})`);
     }
   });
 
   req.on('timeout', () => {
     req.destroy();
   });
+
+  req.end();
+}
+
+function runHealthCheckCycle() {
+  config.backends.forEach((backend) => {
+    checkBackend(backend);
+  });
 }
 
 let intervalId = null;
 
 function start() {
-  // Run immediately, then on interval
-  config.backends.forEach(checkBackend);
-  intervalId = setInterval(() => {
-    config.backends.forEach(checkBackend);
-  }, config.healthCheck.intervalMs);
+  runHealthCheckCycle();
+  intervalId = setInterval(runHealthCheckCycle, config.healthCheck.intervalMs);
+  console.log(`[HealthCheck] Started — checking every ${config.healthCheck.intervalMs}ms`);
 }
 
 function stop() {
   if (intervalId) {
     clearInterval(intervalId);
     intervalId = null;
+    console.log('[HealthCheck] Stopped');
   }
 }
 
-function getStatus(port) {
-  return status.get(port) || 'down';
-}
-
-function getAllStatus() {
-  const result = {};
-  status.forEach((s, port) => { result[port] = s; });
-  return result;
-}
-
-module.exports = { start, stop, getStatus, getAllStatus };
+module.exports = { getStatus, getAllStatuses, start, stop };

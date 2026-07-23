@@ -1,6 +1,9 @@
-// Round-robin load balancer — cycles through backends, skips unhealthy ones
+// src/loadBalancer.js
+// Round-robin load balancer with health-check and circuit breaker integration.
+
 const config = require('./config');
 const healthCheck = require('./healthCheck');
+const circuitBreaker = require('./circuitBreaker');
 
 let currentIndex = 0;
 
@@ -11,14 +14,15 @@ function getNext() {
     const backend = backends[currentIndex % backends.length];
     currentIndex++;
 
-    // Skip backends marked as down by health checks
-    if (healthCheck.getStatus(backend.port) === 'down') continue;
+    const status = healthCheck.getStatus(backend.port);
 
-    return backend;
+    // Skip if marked DOWN by health check or if Circuit Breaker blocks routing
+    if (status === 'up' && circuitBreaker.canRoute(backend)) {
+      return backend;
+    }
   }
 
-  // All backends are down
   return null;
 }
 
-module.exports = { getNext };
+module.exports = { getNext, getNextBackend: getNext };

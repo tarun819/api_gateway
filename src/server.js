@@ -1,102 +1,106 @@
-// API Gateway — main entry point
-// Wires together: load balancer, rate limiter, health checks, metrics, and proxy
+// src/server.js
+// Entry point for the API Gateway — handles pipeline routing, limits, and proxying.
+
 const http = require('http');
-const fs = require('fs');
-const path = require('path');
+const crypto = require('crypto');
 const config = require('./config');
 const proxy = require('./proxy');
 const loadBalancer = require('./loadBalancer');
 const healthCheck = require('./healthCheck');
 const metrics = require('./metrics');
 const shutdown = require('./shutdown');
+const distributedConcurrency = require('./rateLimiter/distributedConcurrency');
 
-// Pick rate limiter based on config
 const rateLimiter = config.rateLimit.algorithm === 'sliding-window'
   ? require('./rateLimiter/slidingWindow')
   : require('./rateLimiter/tokenBucket');
 
-// Extract client IP, handling IPv6-mapped IPv4 addresses
-function getClientIp(req) {
-  const ip = req.socket.remoteAddress || '0.0.0.0';
-  return ip.replace(/^::ffff:/, '');
-}
-
-// Set rate limit headers on a response
-function setRateLimitHeaders(res, result) {
-  res.setHeader('X-RateLimit-Limit', result.limit);
-  res.setHeader('X-RateLimit-Remaining', Math.max(0, result.remaining));
-  if (result.retryAfter > 0) {
-    res.setHeader('Retry-After', result.retryAfter);
-  }
-}
-
 const server = http.createServer(async (req, res) => {
-  shutdown.trackRequest();
-  res.on('finish', () => shutdown.untrackRequest());
+  // 1. Request ID Correlation
+  const requestId = req.headers['x-request-id'] || crypto.randomUUID();
+  res.setHeader('X-Request-Id', requestId);
+  req.headers['x-request-id'] = requestId;
 
-  // Serve dashboard
-  if (req.url === '/dashboard') {
-    const dashboardPath = path.join(__dirname, 'dashboard.html');
-    const html = fs.readFileSync(dashboardPath, 'utf8');
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(html);
-    return;
-  }
-
-  // Serve metrics
+  // 2. Metrics Endpoint (intercepted before rate limiting)
   if (req.url === '/metrics') {
-    const snapshot = metrics.getSnapshot(healthCheck.getAllStatus());
+    const snapshot = metrics.getSnapshot(healthCheck.getAllStatuses());
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(snapshot, null, 2));
     return;
   }
 
-  // Rate limiting
-  const clientIp = getClientIp(req);
-  const result = await rateLimiter.checkLimit(clientIp);
+  const clientIp = req.socket.remoteAddress;
 
-  if (result.fallback) {
-    metrics.recordRedisFallback();
-  }
-
-  if (!result.allowed) {
+  // 3. Distributed Concurrency Check
+  const canProceed = await distributedConcurrency.acquire(clientIp, requestId);
+  if (!canProceed) {
     metrics.recordBlocked();
-    setRateLimitHeaders(res, result);
+    console.log(`[Gateway] [${requestId}] 429 Concurrency limit exceeded for ${clientIp}`);
     res.writeHead(429, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       error: 'Too Many Requests',
-      retryAfter: result.retryAfter,
+      message: 'Too many concurrent connections. Please wait for existing requests to finish.',
     }));
     return;
   }
 
-  // Load balancing
-  const backend = loadBalancer.getNext();
+  res.on('close', () => {
+    distributedConcurrency.release(clientIp, requestId);
+  });
 
-  if (!backend) {
-    res.writeHead(503, { 'Content-Type': 'application/json' });
+  // 4. Rate Limiting Check (Token Bucket / Sliding Window)
+  const { allowed, remaining } = await rateLimiter.isAllowed(clientIp);
+
+  if (remaining === -1) {
+    metrics.recordRedisFallback();
+  }
+
+  res.setHeader('X-RateLimit-Limit', config.rateLimit.capacity);
+  res.setHeader('X-RateLimit-Remaining', Math.max(0, remaining));
+
+  if (!allowed) {
+    metrics.recordBlocked();
+    console.log(`[Gateway] 429 Rate limited ${clientIp} (${remaining} tokens remaining)`);
+    res.writeHead(429, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
-      error: 'Service Unavailable',
-      message: 'All backend servers are down',
+      error: 'Too Many Requests',
+      message: 'Rate limit exceeded. Please try again later.',
+      retryAfterSeconds: 1 / config.rateLimit.refillRate,
     }));
     return;
   }
 
-  metrics.recordRequest(backend.port);
-  setRateLimitHeaders(res, result);
+  // 5. Load Balancing & Reverse Proxying
+  const targetBackend = loadBalancer.getNextBackend();
 
-  console.log(`[Gateway] ${req.method} ${req.url} → ${backend.port} (${clientIp})`);
-  proxy.forward(req, res, backend);
+  if (!targetBackend) {
+    console.error(`[Gateway] [${requestId}] 503 Service Unavailable - No healthy backends available!`);
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Service Unavailable - All backends down or circuit open' }));
+    return;
+  }
+
+  req.targetBackend = targetBackend;
+  metrics.recordRequest(targetBackend.port);
+
+  console.log(`[Gateway] ${req.method} ${req.url} → ${targetBackend.host}:${targetBackend.port} (${remaining} tokens left for ${clientIp})`);
+
+  proxy.forward(req, res, targetBackend);
 });
-
-// Start everything
-healthCheck.start();
-shutdown.register(server, healthCheck, rateLimiter.getRedisClient());
 
 server.listen(config.gatewayPort, () => {
   console.log(`\n🚀 API Gateway running on http://localhost:${config.gatewayPort}`);
-  console.log(`   Algorithm: ${config.rateLimit.algorithm}`);
-  console.log(`   Backends: ${config.backends.map(b => b.port).join(', ')}`);
-  console.log(`   Dashboard: http://localhost:${config.gatewayPort}/dashboard`);
-  console.log(`   Metrics:   http://localhost:${config.gatewayPort}/metrics\n`);
+  console.log(`   Load balancing across ${config.backends.length} backends: ${config.backends.map(b => b.port).join(', ')}`);
+  console.log(`   Rate limiting: ${config.rateLimit.algorithm} (${config.rateLimit.capacity} max, refill ${config.rateLimit.refillRate}/sec)`);
+  console.log(`   Metrics:   http://localhost:${config.gatewayPort}/metrics`);
+
+  healthCheck.start();
+  shutdown.setup({
+    server,
+    healthCheck,
+    rateLimiter,
+    distributedConcurrency
+  });
+
+  console.log(`\n   Test with: curl.exe http://localhost:${config.gatewayPort}/\n`);
 });

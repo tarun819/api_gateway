@@ -1,62 +1,62 @@
-// Token Bucket rate limiter — JS wrapper around the Lua script
+// src/rateLimiter/tokenBucket.js
+// JavaScript wrapper for the Token Bucket Lua script in Redis.
+
 const fs = require('fs');
 const path = require('path');
 const Redis = require('ioredis');
 const config = require('../config');
 
-const redis = new Redis(config.redis);
-const luaScript = fs.readFileSync(path.join(__dirname, 'tokenBucket.lua'), 'utf8');
+const redis = new Redis({
+  host: config.redis.host,
+  port: config.redis.port,
+  lazyConnect: false,
+});
 
-// Cache the script SHA for EVALSHA (avoids sending full script text every time)
-let scriptSha = null;
+redis.on('connect', () => {
+  console.log(`[RateLimiter] Connected to Redis at ${config.redis.host}:${config.redis.port}`);
+});
 
-async function loadScript() {
-  scriptSha = await redis.script('load', luaScript);
-}
+redis.on('error', (err) => {
+  console.error(`[RateLimiter] Redis connection error: ${err.message}`);
+});
 
-async function checkLimit(ip) {
-  const key = `ratelimit:tokenbucket:${ip}`;
-  const now = Date.now();
+const luaScript = fs.readFileSync(
+  path.join(__dirname, 'tokenBucket.lua'),
+  'utf-8'
+);
+
+redis.defineCommand('tokenBucket', {
+  numberOfKeys: 1,
+  lua: luaScript,
+});
+
+const KEY_PREFIX = 'ratelimit:tokenbucket:';
+
+async function isAllowed(ip) {
+  const key = KEY_PREFIX + ip;
+  const now = Date.now() / 1000;
 
   try {
-    // Load script on first call
-    if (!scriptSha) await loadScript();
+    const result = await redis.tokenBucket(
+      key,
+      config.rateLimit.capacity,
+      config.rateLimit.refillRate,
+      now
+    );
 
-    let result;
-    try {
-      result = await redis.evalsha(scriptSha, 1, key, config.rateLimit.capacity, config.rateLimit.refillRate, now);
-    } catch (err) {
-      if (err.message.includes('NOSCRIPT')) {
-        // Script was flushed from Redis cache, reload it
-        await loadScript();
-        result = await redis.evalsha(scriptSha, 1, key, config.rateLimit.capacity, config.rateLimit.refillRate, now);
-      } else {
-        throw err;
-      }
-    }
+    const allowed = result[0] === 1;
+    const remaining = result[1];
 
-    return {
-      allowed: result[0] === 1,
-      remaining: result[1],
-      retryAfter: result[2],
-      limit: config.rateLimit.capacity,
-      fallback: false,
-    };
+    return { allowed, remaining };
   } catch (err) {
-    // Fail open: if Redis is down, allow the request but log a warning
-    console.error(`[RateLimit] Redis error, failing open: ${err.message}`);
-    return {
-      allowed: true,
-      remaining: -1,
-      retryAfter: 0,
-      limit: config.rateLimit.capacity,
-      fallback: true,
-    };
+    console.error(`[RateLimiter] Redis error, failing open: ${err.message}`);
+    return { allowed: true, remaining: -1 };
   }
 }
 
-function getRedisClient() {
-  return redis;
+async function close() {
+  await redis.quit();
+  console.log('[RateLimiter] Redis connection closed');
 }
 
-module.exports = { checkLimit, getRedisClient };
+module.exports = { isAllowed, close };

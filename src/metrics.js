@@ -1,16 +1,20 @@
-// In-memory metrics for the gateway
+// src/metrics.js
+// In-memory metrics tracking throughput, blocked requests, and backend distribution.
+
+const startTime = Date.now();
+
 const counters = {
   totalRequests: 0,
   blockedRequests: 0,
   redisFallbacks: 0,
   requestsPerBackend: {},
-  startTime: Date.now(),
 };
 
 function recordRequest(backendPort) {
   counters.totalRequests++;
   if (backendPort) {
-    counters.requestsPerBackend[backendPort] = (counters.requestsPerBackend[backendPort] || 0) + 1;
+    counters.requestsPerBackend[backendPort] =
+      (counters.requestsPerBackend[backendPort] || 0) + 1;
   }
 }
 
@@ -25,7 +29,7 @@ function recordRedisFallback() {
 
 function getSnapshot(healthStatus) {
   return {
-    uptime: Math.floor((Date.now() - counters.startTime) / 1000),
+    uptime: Math.floor((Date.now() - startTime) / 1000),
     totalRequests: counters.totalRequests,
     blockedRequests: counters.blockedRequests,
     redisFallbacks: counters.redisFallbacks,

@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "start:two": "node src/server.js --port=8080 & node src/server.js --port=8081",
     "bench": "node benchmarks/run-single-instance.js",
-    "bench:two": "node benchmarks/run-two-instance.js"
+    "bench:two": "node benchmarks/run-two-instance.js",
+    "bench:circuit": "node benchmarks/run-circuit-breaker.js"
   },
   "repository": {
     "type": "git",

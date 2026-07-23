@@ -1,4 +1,6 @@
-// Central configuration for the API gateway
+// src/config.js
+// Central configuration for gateway port, backends, rate limiting, and circuit breaker.
+
 const config = {
   gatewayPort: parseInt(process.env.GATEWAY_PORT, 10) || 8080,
 
@@ -16,18 +18,30 @@ const config = {
 
   rateLimit: {
     algorithm: 'token-bucket', // 'token-bucket' or 'sliding-window'
-    capacity: 10,              // max tokens / max requests per window
-    refillRate: 2,             // tokens added per second (token bucket)
-    windowSizeMs: 1000,        // window size in ms (sliding window)
+    capacity: 10,
+    refillRate: 2,
+    windowSizeMs: 1000,
+    maxRequests: 10,
   },
 
   redis: {
-    host: process.env.REDIS_HOST || '127.0.0.1',
-    port: parseInt(process.env.REDIS_PORT, 10) || 6379,
+    host: '127.0.0.1',
+    port: 6379,
+  },
+
+  distributedConcurrency: {
+    enabled: true,
+    maxConcurrent: 5,
+    leaseTimeoutMs: 30000,
+  },
+
+  circuitBreaker: {
+    failureThreshold: 5,
+    cooldownMs: 10000,
   },
 };
 
-// Allow --port=XXXX from command line for multi-instance testing
+// Override gateway port via --port=XXXX argument
 const portArg = process.argv.find(arg => arg.startsWith('--port='));
 if (portArg) {
   config.gatewayPort = parseInt(portArg.split('=')[1], 10);

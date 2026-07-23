@@ -1,64 +1,58 @@
-// Graceful shutdown handler
-// Stops accepting new connections, drains in-flight requests, then exits cleanly
+// src/shutdown.js
+// Graceful shutdown handler for SIGINT/SIGTERM signals.
 
-let server = null;
-let healthCheck = null;
-let redisClient = null;
-let inFlightRequests = 0;
-const DRAIN_TIMEOUT = 10000; // 10 seconds max to drain
+const SHUTDOWN_TIMEOUT_MS = 10000;
 
-function trackRequest() {
-  inFlightRequests++;
-}
+function setup({ server, healthCheck, rateLimiter, distributedConcurrency }) {
+  let isShuttingDown = false;
 
-function untrackRequest() {
-  inFlightRequests--;
-}
+  async function shutdown(signal) {
+    if (isShuttingDown) {
+      console.log('\n[Shutdown] Forced exit (second signal received)');
+      process.exit(1);
+    }
 
-function register(httpServer, healthCheckModule, redis) {
-  server = httpServer;
-  healthCheck = healthCheckModule;
-  redisClient = redis;
+    isShuttingDown = true;
+    console.log(`\n[Shutdown] ${signal} received — shutting down gracefully...`);
 
-  const shutdown = (signal) => {
-    console.log(`\n[Shutdown] Received ${signal}, shutting down gracefully...`);
-
-    // Stop accepting new connections
+    // 1. Stop accepting new connections while draining active ones
     server.close(() => {
-      console.log('[Shutdown] Server closed, no new connections accepted');
+      console.log('[Shutdown] All in-flight requests completed');
     });
 
-    // Stop health checks
-    if (healthCheck) healthCheck.stop();
+    // 2. Stop health check timer
+    healthCheck.stop();
 
-    // Wait for in-flight requests to finish
-    const drainStart = Date.now();
-    const drainInterval = setInterval(async () => {
-      if (inFlightRequests <= 0 || Date.now() - drainStart > DRAIN_TIMEOUT) {
-        clearInterval(drainInterval);
-
-        if (inFlightRequests > 0) {
-          console.log(`[Shutdown] Timeout reached with ${inFlightRequests} in-flight requests, force exiting`);
-        } else {
-          console.log('[Shutdown] All in-flight requests completed');
-        }
-
-        // Close Redis connection
-        if (redisClient) {
-          try {
-            await redisClient.quit();
-            console.log('[Shutdown] Redis connection closed');
-          } catch (e) { /* ignore */ }
-        }
-
-        console.log('[Shutdown] Goodbye!');
-        process.exit(inFlightRequests > 0 ? 1 : 0);
+    // 3. Close Redis connections
+    try {
+      if (rateLimiter && typeof rateLimiter.close === 'function') {
+        await rateLimiter.close();
       }
-    }, 100);
-  };
+      if (distributedConcurrency && typeof distributedConcurrency.close === 'function') {
+        await distributedConcurrency.close();
+      }
+    } catch (err) {
+      console.error(`[Shutdown] Error closing Redis: ${err.message}`);
+    }
 
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
+    console.log('[Shutdown] Cleanup complete — exiting');
+    process.exit(0);
+  }
+
+  function shutdownWithTimeout(signal) {
+    shutdown(signal);
+
+    // 4. Force kill process if stuck past deadline
+    const timer = setTimeout(() => {
+      console.error(`[Shutdown] Timed out after ${SHUTDOWN_TIMEOUT_MS / 1000}s — forcing exit`);
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS);
+
+    timer.unref();
+  }
+
+  process.on('SIGINT', () => shutdownWithTimeout('SIGINT'));
+  process.on('SIGTERM', () => shutdownWithTimeout('SIGTERM'));
 }
 
-module.exports = { register, trackRequest, untrackRequest };
+module.exports = { setup };
