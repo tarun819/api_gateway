@@ -1,6 +1,4 @@
-// src/metrics.js
-// In-memory metrics tracking throughput, blocked requests, and backend distribution.
-
+// src/metrics.js - In-memory observability metrics tracker
 const startTime = Date.now();
 
 const counters = {
@@ -10,6 +8,7 @@ const counters = {
   requestsPerBackend: {},
 };
 
+// 1. Metric recorders for traffic, rate-limit blocks, and Redis fallbacks
 function recordRequest(backendPort) {
   counters.totalRequests++;
   if (backendPort) {
@@ -27,6 +26,7 @@ function recordRedisFallback() {
   counters.redisFallbacks++;
 }
 
+// 2. Returns structured snapshot for GET /metrics endpoint
 function getSnapshot(healthStatus) {
   return {
     uptime: Math.floor((Date.now() - startTime) / 1000),

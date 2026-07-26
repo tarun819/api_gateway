@@ -1,4 +1,14 @@
 // src/rateLimiter/concurrencyLimiter.js
+//
+// NOTE: This is the original single-instance concurrency limiter (Phase 11).
+// It was replaced by distributedConcurrency.js (Phase 11b) which uses Redis ZSETs
+// for cluster-wide enforcement. Kept here as a reference for the design evolution.
+//
+// Why this approach fails in a distributed setting:
+//   - Each gateway process has its own Map, so a client can open maxConcurrent
+//     connections on Gateway A AND maxConcurrent on Gateway B — bypassing the limit.
+//   - A simple Redis INCR/DECR counter also doesn't work because if a gateway
+//     crashes mid-request, the DECR never fires and you permanently leak a slot.
 // Limits the number of simultaneous, in-flight requests per client IP.
 //
 // Unlike the Token Bucket (which tracks requests over time using Redis),

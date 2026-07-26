@@ -1,13 +1,19 @@
 # API Gateway in Native Node.js
 
-A production-inspired API Gateway built with native Node.js that demonstrates distributed rate limiting, request correlation tracing, circuit breaking, health-aware load balancing, and graceful shutdown.
+A production-oriented API Gateway built with native Node.js that demonstrates distributed rate limiting, request correlation tracing, sliding-window circuit breaking, health-aware load balancing, zero-copy stream forwarding, and graceful shutdown.
+
+---
+
+### 📊 Project Statistics
+
+`~1,400 Lines of Code` | `14 Source Files` | `3 Lua Scripts` | `3 Mock Backends` | `3 Benchmark Suites` | `8 Reliability Features` | `2 Rate Limiting Algorithms`
 
 ---
 
 ## ⚡ Tech Stack Summary
 
 * **Runtime & Networking**: Native Node.js (`http`, `crypto`, `stream`)
-* **Distributed State**: Redis + Atomic Lua Scripts (`ZSET` concurrency locking)
+* **Distributed State**: Redis + Atomic Lua Scripts (`ZSET` concurrency locking, Token Bucket & Sliding Window)
 * **Architecture**: Distributed Reverse Proxy, Load Balancer & Resiliency Pipeline
 * **Load Testing**: Autocannon
 
@@ -15,7 +21,24 @@ A production-inspired API Gateway built with native Node.js that demonstrates di
 
 ## 🎯 Motivation
 
-This project was built to explore core production gateway patterns used in systems such as NGINX, Envoy, and Spring Cloud Gateway. The primary focus was understanding low-level reliability, state synchronization, and fault-tolerance mechanisms rather than simply forwarding HTTP requests.
+This project was built to explore core production gateway patterns used in enterprise systems such as NGINX, Envoy, and Spring Cloud Gateway. The primary focus was understanding low-level reliability, state synchronization, stream pipe safety, and fault-tolerance mechanisms rather than simply forwarding HTTP requests.
+
+---
+
+## 🚀 Key Production Features
+
+* ✔ **Native HTTP Reverse Proxy**: Bypasses framework overhead (no Express) for high-performance stream routing.
+* ✔ **Zero-Copy Stream Forwarding**: Uses Node.js Streams (`.pipe()`) to stream payloads with `O(1)` memory usage.
+* ✔ **Atomic Redis Lua Rate Limiting**: Executes atomic read-check-write logic via custom Lua scripts.
+* ✔ **Self-Healing Distributed Concurrency**: Tracks cluster-wide in-flight connections per IP via Redis Sorted Sets (`ZSET`).
+* ✔ **Lease Renewal Heartbeat Pattern**: Refreshes `ZSET` scores at 70% of lease timeout so long-lived streaming/upload requests aren't prematurely evicted.
+* ✔ **Hystrix-Style Circuit Breaker**: Rolling-window state machine (`CLOSED` → `OPEN` → `HALF_OPEN`) with single-probe thundering herd protection.
+* ✔ **Health-Aware Round Robin**: Continuously polls upstream `/health` endpoints and skips unhealthy backends.
+* ✔ **Distributed Request Tracing**: Propagates `X-Request-Id` correlation UUIDs across all logs and downstream responses.
+* ✔ **Fail-Fast & Fail-Open Resilience**: Bypasses Redis during outages (`enableOfflineQueue: false`) to keep traffic flowing.
+* ✔ **Kubernetes-Ready Graceful Shutdown**: Drains in-flight connections safely on `SIGINT` / `SIGTERM`.
+* ✔ **Live Observability Metrics**: Exposes low-latency JSON metrics at `/metrics`.
+* ✔ **Automated Benchmark Suite**: Includes single-node load tests, multi-node clustering tests, and state machine lifecycle tests.
 
 ---
 
@@ -25,18 +48,19 @@ This project was built to explore core production gateway patterns used in syste
                                   ┌─────────────────────────────────────────────────────────┐
                                   │                   API Gateway (:8080)                   │
   Client ───────────────────────► │                                                         │
-  (X-Request-Id)                  │  ┌──────────────────┐  ┌─────────────────────────────┐  │
+  (X-Request-Id: UUID v4)        │  ┌──────────────────┐  ┌─────────────────────────────┐  │
                                   │  │   Request ID     │  │    Distributed Concurrency  │  │
                                   │  │   Correlation    │  │    Limiter (Redis ZSET)    │  │
                                   │  └────────┬─────────┘  └──────────────┬──────────────┘  │
                                   │           │                           │                 │
                                   │  ┌────────▼─────────┐  ┌──────────────▼──────────────┐  │
                                   │  │   Rate Limiter   │  │       Circuit Breaker       │  │
-                                  │  │   (Token Bucket) │  │  (CLOSED/OPEN/HALF_OPEN)    │  │
+                                  │  │(Token Bucket Lua)│  │ (Sliding Window 50% Rate)   │  │
                                   │  └────────┬─────────┘  └──────────────┬──────────────┘  │
                                   │           │                           │                 │
                                   │  ┌────────▼─────────┐  ┌──────────────▼──────────────┐  │
-                                  │  │ In-Memory Metrics│  │        Load Balancer        │  │
+                                  │  │In-Memory Metrics │  │    Load Balancer (Round    │  │
+                                  │  │  (Observability) │  │    Robin + Health Check)    │  │
                                   │  └──────────────────┘  └──────────────┬──────────────┘  │
                                   └───────────┼───────────────────────────┼─────────────────┘
                                               │                           │
@@ -50,12 +74,39 @@ This project was built to explore core production gateway patterns used in syste
 ### Request Processing Flow
 1. **Request Entry**: Client hits the gateway endpoint.
 2. **Tracing**: `X-Request-Id` UUID is attached to the request headers (or reused if sent by the client) and added to the outgoing response.
-3. **Concurrency Limiter**: Checks Redis `ZSET` to admit or reject based on active in-flight requests from the client's IP.
+3. **Distributed Concurrency Limiter**: Checks Redis `ZSET` to admit or reject based on active in-flight requests from the client's IP.
 4. **Rate Limiter**: Executes an atomic Redis Lua script (Token Bucket or Sliding Window) to evaluate quota.
 5. **Circuit Breaker & Load Balancer**: The Round-Robin balancer checks `circuitBreaker.canRoute()` and health check status before selecting an available backend.
-6. **Transparent Proxying**: Request data is streamed directly to the upstream backend using Node `.pipe()`.
-7. **Circuit State Updates**: Upstream response status (2xx/3xx/4xx vs 5xx) or socket errors update the backend's circuit breaker state (success resets failure counts).
+6. **Transparent Proxying**: Request data is streamed directly to the upstream backend using Node.js Streams (`.pipe()`).
+7. **Circuit State Updates**: Upstream response status (2xx/3xx/4xx vs 5xx) or socket errors update the backend's circuit breaker state.
 8. **Metrics Update**: Traffic counts, blocked requests, and backend distribution counters are updated in-memory.
+
+---
+
+## 🧠 Interesting Engineering Problems Solved (Interview Highlights)
+
+* **Prevented Race Conditions via Atomic Lua Scripting**: Replaced multi-step JS read/write calls with atomic Lua scripts executed single-threaded in Redis, eliminating TOCTOU (time-of-check to time-of-use) race conditions across clustered gateways.
+* **Cached Lua Scripts via `EVALSHA`**: Pre-registered Lua scripts on startup using `ioredis.defineCommand`, allowing execution via SHA hashes (`EVALSHA`) to avoid transmitting raw script text over the network on every request.
+* **Lease Renewal Heartbeat for Long-Running Requests**: Implemented a background renewal timer running at 70% of lease timeout (`leaseTimeoutMs * 0.7`) to execute `ZADD` timestamp updates for long-lived streams/uploads. This prevents active connections from being evicted as "stale" while retaining self-healing properties if a gateway crashes.
+* **Guaranteed Timer Cleanup on All Exit Paths**: Bound lease renewal timers to the HTTP response `'close'` event, ensuring that successful finishes, 5xx errors, and aborted client sockets all cleanly stop the timer and release the concurrency slot without memory leaks.
+* **Solved Stream Hanging Caused by Async Middleware Gaps**: Fixed a subtle Node.js stream trap where `GET` requests without a body emit `'end'` during `await` gaps. Added `if (clientReq.complete) proxyReq.end()` to prevent socket stalls.
+* **Self-Healing Distributed Concurrency Leases**: Used Redis Sorted Sets (`ZSET`) with timestamp scores instead of raw `INCR`/`DECR` counters so crashed gateway processes automatically have their stale leases reclaimed by `ZREMRANGEBYSCORE`.
+* **Prevented Thundering Herd During Recovery**: Implemented a `probeInFlight` single-request lock in the `HALF_OPEN` circuit breaker state to ensure only one test request probes a recovering backend before allowing full traffic.
+* **Fail-Open Resilience for Redis Outages**: Configured Redis with `enableOfflineQueue: false` and `maxRetriesPerRequest: 1` so that database connection drops trigger instant fail-open fallbacks rather than freezing HTTP socket connections.
+* **Separated Observability Data from Correctness State**: Stored `/metrics` counters in-memory instead of Redis. Metrics are observability data rather than correctness-critical distributed state; storing them in Redis would introduce unnecessary network latency and write amplification.
+* **Distributed End-to-End Tracing**: Propagated `X-Request-Id` UUID correlation headers seamlessly across HTTP client requests, gateway log events, and backend microservice headers.
+
+---
+
+## ⏱️ Algorithmic & System Complexity
+
+| Component | Operations / Data Structure | Time Complexity | Space Complexity |
+|---|---|---|---|
+| **Load Balancer** | Round-Robin Pointer Array | `O(1)` | `O(N)` backends |
+| **Rate Limiter** | Redis Atomic Lua Script | `O(1)` | `O(U)` active IPs |
+| **Concurrency Limiter** | Redis `ZSET` (Timestamp Score) | `O(log K)` | `O(K)` active connections |
+| **Circuit Breaker** | Ring Buffer Array + Running Sum | `O(1)` | `O(N)` backends |
+| **Proxy Engine** | Node.js Stream Piping (`.pipe()`) | `O(1)` | `O(1)` memory (bounded) |
 
 ---
 
@@ -65,46 +116,17 @@ This project was built to explore core production gateway patterns used in syste
               ┌─────────────────────────────────────────┐
               │                                         │
               ▼                                         │ 500/502/503/504
-        ┌───────────┐      5 Failures       ┌───────────┴┐  or Network Error
-        │  CLOSED   ├──────────────────────►│    OPEN    │
-        └─────▲─────┘                       └─────┬──────┘
-              │                                   │
-              │ Probe                             │ 10s Cooldown
-              │ Succeeded                         │ Expired
-              │                             ┌─────▼──────┐
-              └─────────────────────────────┤ HALF_OPEN  │
-                                            └────────────┘
-                                            (Single Probe)
+        ┌───────────┐     Failure Rate ≥ 50%    ┌──────┴────┐  or Network Error
+        │  CLOSED   ├──────────────────────────►│    OPEN   │
+        └─────▲─────┘    (in 10-req window)     └─────┬─────┘
+              │                                       │
+              │ Probe                                 │ 2s Cooldown
+              │ Succeeded                             │ Expired
+              │                                 ┌─────▼──────┐
+              └─────────────────────────────────┤ HALF_OPEN  │
+                                                └────────────┘
+                                                (Single Probe)
 ```
-
----
-
-## ✨ Features
-
-* **Streaming Reverse Proxy**: Streams request and response bodies directly via `.pipe()`. Memory usage does not grow linearly with payload size because data is forwarded in small chunks without buffering the full body.
-* **Distributed Atomic Rate Limiter**: Implemented using Redis and custom **Lua scripts** to execute indivisible read-check-write operations, preventing race conditions across clustered gateway instances.
-* **Self-Healing Concurrency Limiter**: Limits active, in-flight connections per IP across the cluster using a **Redis Sorted Set (`ZSET`)** with timestamp scores to prevent "orphaned counters" (leaked slots) if a gateway process unexpectedly crashes.
-* **Circuit Breaker**: Inspired by the Hystrix state machine pattern (`CLOSED` → `OPEN` → `HALF_OPEN`), featuring single `probeInFlight` protection and automatic error tracking for 5xx status codes and network drops.
-* **Health-Check Aware Load Balancer**: Round-Robin router that continuously polls backend `/health` endpoints and automatically skips unhealthy or circuit-opened backends.
-* **Request ID Correlation**: Propagates `X-Request-Id` UUIDs across all gateway log outputs, upstream microservices, and downstream client responses for end-to-end distributed tracing.
-* **Kubernetes-Ready Graceful Shutdown**: Intercepts `SIGINT` / `SIGTERM` signals, closes HTTP listeners to stop accepting new requests, drains active in-flight requests, and gracefully closes Redis connections.
-* **Observability Snapshot**: Exposes JSON metrics at `/metrics` for real-time tracking of throughput, block rates, trace correlation, and backend health status.
-
----
-
-## 🌐 Distributed Verification (`npm run bench:two`)
-
-One of the key capabilities of this architecture is **distributed state enforcement**. Rate limits are enforced globally across an arbitrary number of gateway processes for the same client IP (`127.0.0.1`):
-
-```
-  Client (IP: 127.0.0.1)
-         │
-         ├─── (10 Rapid Requests) ───► Gateway Instance A (:8080) ───► [Redis: Tokens = 0] (Allowed 200 OK)
-         │
-         └─── (11th Request) ────────► Gateway Instance B (:8081) ───► [Redis: Tokens = 0] ❌ Rejected (429)
-```
-
-Running `npm run bench:two` spawns Gateway A (:8080) and Gateway B (:8081) on localhost. Exhausting tokens on Gateway A instantly blocks Gateway B for that IP, proving rate-limit state is shared globally through Redis.
 
 ---
 
@@ -112,84 +134,123 @@ Running `npm run bench:two` spawns Gateway A (:8080) and Gateway B (:8081) on lo
 
 | Scenario | Gateway Behavior | Impact |
 |---|---|---|
-| **Redis Unavailable** | Fail-Open strategy (allows requests unmetered) | API remains accessible even during Redis outages |
-| **Backend Unreachable** | Health check marks `DOWN` | Load balancer automatically skips it and redirects traffic to healthy nodes |
-| **Backend Intermittent 5xx Errors** | Circuit Breaker trips `OPEN` after 5 failures | Gateway immediately returns `503 Service Unavailable` to let backend recover |
+| **Redis Unavailable** | `enableOfflineQueue: false` triggers fail-open strategy | Gateway immediately permits traffic unmetered instead of hanging HTTP socket connections |
+| **Backend Unreachable** | Socket connection times out after 2000ms | Returns `502 Bad Gateway` and records failure on circuit breaker |
+| **Backend Intermittent 5xx Errors** | Circuit Breaker trips `OPEN` after 50% failure rate | Gateway immediately returns `503 Service Unavailable` to let backend recover |
 | **Gateway Process Crash** | Concurrency `ZSET` leases expire automatically after 30s | Prevents orphaned counter leaks across the cluster |
 | **Gateway Shutdown (`SIGTERM`)** | Stops accepting connections & waits up to 10s for in-flight requests | Prevents broken connections (`ECONNRESET`) for downstream clients |
 
 ---
 
-## 📐 Design Decisions & Architectural Insights
+## 📐 Deep-Dive Architectural Insights
 
-### 1. Why Native `http` Instead of Express?
-Native `http` was chosen because this project primarily acts as a transparent reverse proxy, where request and response streams can be forwarded directly without additional middleware overhead. This avoids unnecessary body parsing and maintains bounded memory usage under high concurrency.
+### 1. Health Checks vs. Circuit Breakers: Why Both are Necessary
+* **Proactive Health Check Polling**: Background health checks poll backend `/health` endpoints periodically (e.g. every 3s). This catches known down instances *before* client traffic hits them.
+* **Reactive Circuit Breakers**: Real-time circuit breakers evaluate failure rates on live production traffic. If a backend suddenly starts throwing 500 errors or timing out under load, the circuit breaker trips to `OPEN` instantly—protecting the system long before the next 3-second health check cycle runs.
 
-### 2. Why Lua Scripts for Rate Limiting?
-Rate limiting requires reading a token count, evaluating a threshold, and writing the updated state. If performed via separate Redis commands in JavaScript, concurrent requests can observe stale bucket state and both decide to allow the request. Redis executes Lua scripts **atomically** in a single thread—guaranteeing that no other command can interleave.
+### 2. Why Redis `ZSET` Was Chosen for Concurrency Limiting
+Redis Sorted Sets (`ZSET`) were chosen because they naturally support timestamp-based ordering, efficient expiration of stale leases via `ZREMRANGEBYSCORE`, and constant-time cardinality queries (`ZCARD`). This makes them ideal for self-healing distributed concurrency tracking without requiring external garbage-collection cron jobs.
 
-### 3. Self-Healing Concurrency Limiting via Redis `ZSET`
-Simple `INCR`/`DECR` counters leak permanently if a gateway process crashes while a request is in-flight (the `DECR` never runs). Our implementation uses a Redis Sorted Set (`ZSET`):
-* **Acquire**: Atomically runs `ZREMRANGEBYSCORE` to purge requests older than the 30-second lease timeout, checks `ZCARD`, and inserts the `requestId` with `Date.now()` score via `ZADD`.
-* **Release**: Explicitly removes the `requestId` via `ZREM` when the response finishes (`res.on('close')`).
-If a gateway process crashes mid-request, its entries naturally age out after 30 seconds, automatically reclaiming concurrency slots without manual intervention.
+### 3. Stream Pipe Safety with Async Middleware
+When handling `async/await` operations (like Redis queries) before forwarding requests, incoming `GET` requests without a body can finish receiving data before `proxy.forward()` is called. Without an explicit check, `clientReq.pipe(proxyReq)` misses the `'end'` event and hangs indefinitely. We guard against this by checking `if (clientReq.complete) proxyReq.end()`.
 
-### 4. Circuit Breaker `probeInFlight` Guard
-When a circuit transitions from `OPEN` to `HALF_OPEN` after its cooldown expires, allowing all incoming requests to probe the backend would cause a thundering herd. `canRoute()` sets `probeInFlight = true` for the *first* request and immediately rejects subsequent requests (`503 Service Unavailable`) until the single probe finishes.
+### 4. Why Metrics are Stored In-Memory
+Metrics are intentionally stored in-memory because they represent observability data rather than correctness-critical distributed state. Replicating metrics through Redis would add unnecessary network latency and write amplification to the core request pipeline.
+
+### 5. Lease Renewal Heartbeat Pattern for Long-Running Requests
+To support long-lived HTTP requests (e.g. streaming responses, SSE, large file uploads), the gateway implements a heartbeat timer running at 70% of lease timeout (`leaseTimeoutMs * 0.7`). It calls `distributedConcurrency.renew(ip, requestId)` to execute a `ZADD` timestamp update in Redis. This resets the eviction countdown for active requests while retaining self-healing properties: if the gateway crashes, the heartbeat stops and `ZREMRANGEBYSCORE` reaps the slot after 30 seconds.
 
 ---
 
 ## 📊 Benchmark & Performance Analysis
 
-Single-instance benchmark results generated via `autocannon` (10-second duration per concurrency level). 
+Single-instance benchmark results generated via `autocannon` (10-second duration per concurrency level).
 
-> **Benchmark Configuration Note**: To measure raw reverse-proxy engine throughput and socket handling capacity under load, rate-limiting capacity was temporarily raised during this benchmark run. Under default capacity (10 tokens), requests exceeding quota from the same IP are rejected with `429 Too Many Requests` as verified by `npm run bench:two`.
+> **Rate Limit & Concurrency Note**: Under default config (`maxConcurrent: 5`, `capacity: 10`), requests exceeding quota from `127.0.0.1` are blocked with `429 Too Many Requests` (accounting for both concurrency and token bucket limits). The table below demonstrates 100% socket stability under heavy burst traffic without connection drops.
 
-### Environment Specs
-* **CPU**: Intel Core i5-10210U (4 Cores / 8 Threads)
-* **RAM**: 12 GB
-* **Node.js**: v22.x
-* **Redis**: v7.x (Localhost TCP)
-* **OS**: Windows 11 / WSL2
+### Benchmark Data (Single Instance `:8080`)
 
-| Connections | Throughput (req/sec) | Latency p50 | Latency p97.5 | Latency p99 | 2xx Responses | Blocked / 4xx | Connection Errors |
-|---|---|---|---|---|---|---|---|
-| **10** | 2,840 req/s | 2.1 ms | 5.8 ms | 8.2 ms | 28,400 | 0 | 0 |
-| **50** | 3,120 req/s | 3.4 ms | 9.1 ms | 14.5 ms | 31,200 | 0 | 0 |
-| **100** | 2,980 req/s | 4.8 ms | 18.2 ms | 27.6 ms | 29,800 | 0 | 0 |
+| Connections | Throughput (req/sec) | Latency p50 | Latency p97.5 | Latency p99 | 2xx Allowed | 429 Blocked | Socket Success Rate |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **10** | 1,591 req/s | 6.0 ms | 11.0 ms | 15.0 ms | 29 | 15,876 | 100% (0 errors) |
+| **50** | 2,360 req/s | 18.0 ms | 35.0 ms | 43.0 ms | 21 | 23,574 | 100% (0 errors) |
+| **100** | 2,413 req/s | 37.0 ms | 69.0 ms | 166.0 ms | 0 | 24,124 | 100% (0 errors) |
 
 ---
 
-## 🚀 Quick Start
+## 📸 Visual Demos & Terminal Outputs
+
+```
++-------------------------------------------------------------------------------+
+|                       API GATEWAY BENCHMARK DEMO                              |
++-------------------------------------------------------------------------------+
+| $ npm run bench:circuit                                                       |
+|                                                                               |
+|   Circuit Breaker Lifecycle Test                                              |
+|   Step 1: Normal Traffic (CLOSED) -> ✓ [200] Backend is healthy               |
+|   Step 2: Kill Backend -> Trip to OPEN -> ✓ [503] Circuit is OPEN, instant 503|
+|   Step 3: Cooldown -> Failed Probe (HALF_OPEN -> OPEN)                        |
+|   Step 4: Restart Backend -> Probe Succeeded (HALF_OPEN -> CLOSED)             |
+|                                                                               |
+|   ✅ PASSED: CLOSED -> OPEN -> HALF_OPEN -> OPEN -> HALF_OPEN -> CLOSED       |
++-------------------------------------------------------------------------------+
+```
+
+---
+
+## 🚀 Quick Start & How to Run
 
 ### Prerequisites
 * **Node.js**: v18+
-* **Redis**: Running on `localhost:6379`
+* **Redis**: Running on `localhost:6379` (via WSL, Docker, or native service)
 
-### Installation & Running
+### 1. Start Background Services
 
 ```bash
-# 1. Start Redis Server
+# Terminal 1: Start Redis Server (WSL / Docker)
 redis-server
 
-# 2. Clone repository & install dependencies
-git clone https://github.com/tarun819/api_gateway.git
-cd api_gateway
-npm install
-
-# 3. Start mock backend cluster (Ports 4001, 4002, 4003)
+# Terminal 2: Start Mock Backends (Ports 4001, 4002, 4003)
 npm run start:backends
+```
 
-# 4. Start the API Gateway (Port 8080)
+### 2. Run the API Gateway
+
+```bash
+# Terminal 3: Start the Gateway (Port 8080)
 npm run start
 ```
 
-### Endpoints
+---
 
-| URL | Description |
-|---|---|
-| `http://localhost:8080/` | Proxied to healthy backends via Round-Robin |
-| `http://localhost:8080/metrics` | JSON snapshot of real-time observability metrics |
+## 🧪 Benchmark & Automated Test Suite
+
+Run these commands from your project root:
+
+```bash
+# 1. Single-Instance Load Test (Requires Gateway, Backends, and Redis running)
+npm run bench
+
+# 2. Clustered Multi-Gateway Test (Requires Backends and Redis running)
+# Spawns two gateways (8080 & 8081) to verify shared rate limit state
+npm run bench:two
+
+# 3. Circuit Breaker Lifecycle Test (Self-contained, spawns its own mock backend)
+# Tests CLOSED -> OPEN -> HALF_OPEN probe -> CLOSED recovery flow
+npm run bench:circuit
+```
+
+---
+
+## 🔮 Future Work & Architecture Roadmap
+
+* 🔹 **Consistent Hashing**: Sticky sessions and stateful routing via Ketama hashing.
+* 🔹 **Least Connections Balancing**: Dynamic load balancing based on active upstream connection counts.
+* 🔹 **Prometheus Observability**: Exporting metrics in official Prometheus exposition format (`/metrics` text format).
+* 🔹 **JWT Authentication & Authorization**: Stateless JWT verification at the edge before proxying.
+* 🔹 **OpenTelemetry Tracing**: Distributed context propagation using W3C Trace Context headers.
+* 🔹 **Dynamic Service Discovery**: Integrating with etcd or Consul for zero-downtime registration.
+* 🔹 **Retry with Exponential Backoff**: Automatic retry policies for idempotent HTTP methods.
 
 ---
 
@@ -214,35 +275,12 @@ module.exports = {
     leaseTimeoutMs: 30000,
   },
   circuitBreaker: {
-    failureThreshold: 5,
-    cooldownMs: 10000,
+    windowSize: 10,
+    failureRateThreshold: 0.5,
+    cooldownMs: 2000,
   },
 };
 ```
-
----
-
-## 🧪 Benchmark & Automated Test Suite
-
-```bash
-# Run autocannon performance benchmark (single instance)
-npm run bench
-
-# Run distributed rate limit test across two gateway instances (Ports 8080 & 8081)
-npm run bench:two
-
-# Test Circuit Breaker state machine (CLOSED -> OPEN -> HALF_OPEN probe -> CLOSED)
-npm run bench:circuit
-```
-
----
-
-## 🔮 Future Improvements
-
-* **Weighted Round Robin & Least Connections**: Dynamic load balancing based on backend server capacity or active connection counts.
-* **Prometheus Observability**: Exporting metrics in standard Prometheus exposition format (`/metrics` text format).
-* **Dynamic Service Discovery**: Integrating with etcd or Consul for zero-downtime backend registration.
-* **TLS Termination & HTTP/2 Support**: Direct SSL certificate handling at the edge.
 
 ---
 

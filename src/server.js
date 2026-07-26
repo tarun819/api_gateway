@@ -1,6 +1,4 @@
-// src/server.js
-// Entry point for the API Gateway — handles pipeline routing, limits, and proxying.
-
+// src/server.js - Core HTTP server & gateway pipeline orchestrator
 const http = require('http');
 const crypto = require('crypto');
 const config = require('./config');
@@ -16,12 +14,12 @@ const rateLimiter = config.rateLimit.algorithm === 'sliding-window'
   : require('./rateLimiter/tokenBucket');
 
 const server = http.createServer(async (req, res) => {
-  // 1. Request ID Correlation
+  // 1. Request ID Correlation & Tracing
   const requestId = req.headers['x-request-id'] || crypto.randomUUID();
   res.setHeader('X-Request-Id', requestId);
   req.headers['x-request-id'] = requestId;
 
-  // 2. Metrics Endpoint (intercepted before rate limiting)
+  // Intercept internal metrics endpoint before rate limiting
   if (req.url === '/metrics') {
     const snapshot = metrics.getSnapshot(healthCheck.getAllStatuses());
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -31,7 +29,7 @@ const server = http.createServer(async (req, res) => {
 
   const clientIp = req.socket.remoteAddress;
 
-  // 3. Distributed Concurrency Check
+  // 2. Distributed Concurrency Limiting (Redis ZSET)
   const canProceed = await distributedConcurrency.acquire(clientIp, requestId);
   if (!canProceed) {
     metrics.recordBlocked();
@@ -44,11 +42,17 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  const renewalMs = Math.floor(config.distributedConcurrency.leaseTimeoutMs * 0.7);
+  const renewalTimer = setInterval(() => {
+    distributedConcurrency.renew(clientIp, requestId);
+  }, renewalMs);
+
   res.on('close', () => {
+    clearInterval(renewalTimer);
     distributedConcurrency.release(clientIp, requestId);
   });
 
-  // 4. Rate Limiting Check (Token Bucket / Sliding Window)
+  // 3. Distributed Rate Limiting (Token Bucket / Sliding Window)
   const { allowed, remaining } = await rateLimiter.isAllowed(clientIp);
 
   if (remaining === -1) {
@@ -60,7 +64,7 @@ const server = http.createServer(async (req, res) => {
 
   if (!allowed) {
     metrics.recordBlocked();
-    console.log(`[Gateway] 429 Rate limited ${clientIp} (${remaining} tokens remaining)`);
+    console.log(`[Gateway] [${requestId}] 429 Rate limited ${clientIp} (${remaining} tokens remaining)`);
     res.writeHead(429, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       error: 'Too Many Requests',
@@ -70,7 +74,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 5. Load Balancing & Reverse Proxying
+  // 4. Load Balancing & Circuit Breaker Forwarding
   const targetBackend = loadBalancer.getNextBackend();
 
   if (!targetBackend) {
@@ -82,7 +86,6 @@ const server = http.createServer(async (req, res) => {
 
   req.targetBackend = targetBackend;
   metrics.recordRequest(targetBackend.port);
-
   console.log(`[Gateway] ${req.method} ${req.url} → ${targetBackend.host}:${targetBackend.port} (${remaining} tokens left for ${clientIp})`);
 
   proxy.forward(req, res, targetBackend);

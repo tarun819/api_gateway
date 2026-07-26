@@ -1,8 +1,7 @@
-// src/shutdown.js
-// Graceful shutdown handler for SIGINT/SIGTERM signals.
-
+// src/shutdown.js - Graceful process shutdown handler (SIGINT / SIGTERM)
 const SHUTDOWN_TIMEOUT_MS = 10000;
 
+// 1. Registers process signal listeners for draining connections & resources
 function setup({ server, healthCheck, rateLimiter, distributedConcurrency }) {
   let isShuttingDown = false;
 
@@ -15,15 +14,14 @@ function setup({ server, healthCheck, rateLimiter, distributedConcurrency }) {
     isShuttingDown = true;
     console.log(`\n[Shutdown] ${signal} received — shutting down gracefully...`);
 
-    // 1. Stop accepting new connections while draining active ones
+    // Stop accepting new connections & drain active requests
     server.close(() => {
       console.log('[Shutdown] All in-flight requests completed');
     });
 
-    // 2. Stop health check timer
     healthCheck.stop();
 
-    // 3. Close Redis connections
+    // Cleanly close Redis connection handles
     try {
       if (rateLimiter && typeof rateLimiter.close === 'function') {
         await rateLimiter.close();
@@ -39,10 +37,10 @@ function setup({ server, healthCheck, rateLimiter, distributedConcurrency }) {
     process.exit(0);
   }
 
+  // Hard deadline timeout to prevent hanging on stuck connections
   function shutdownWithTimeout(signal) {
     shutdown(signal);
 
-    // 4. Force kill process if stuck past deadline
     const timer = setTimeout(() => {
       console.error(`[Shutdown] Timed out after ${SHUTDOWN_TIMEOUT_MS / 1000}s — forcing exit`);
       process.exit(1);

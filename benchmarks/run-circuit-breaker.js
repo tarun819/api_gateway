@@ -1,52 +1,63 @@
-// benchmarks/run-circuit-breaker.js
-// Tests the Netflix Hystrix-style Circuit Breaker implementation.
-//
-// Usage: node benchmarks/run-circuit-breaker.js
-
+// benchmarks/run-circuit-breaker.js - Automated state machine verification script
 const http = require('http');
 const config = require('../src/config');
 const { spawn } = require('child_process');
 
 const PORT = 8080;
-const BACKEND_PORT = 4001; // We will test against just one backend
+let gatewayProcess, backendProcess;
 
-let gatewayProcess;
-let backendProcess;
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const cooldown = () => sleep(2500);
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
+// 1. Client HTTP GET wrapper with 5s timeout fail-safe
 function httpGet(path = '/') {
   return new Promise((resolve) => {
-    http.get(`http://localhost:${PORT}${path}`, (res) => {
+    const req = http.get(`http://localhost:${PORT}${path}`, (res) => {
       let body = '';
       res.on('data', chunk => body += chunk);
       res.on('end', () => {
-        let parsed = null;
-        try { parsed = JSON.parse(body); } catch (e) { parsed = body; }
-        resolve({
-          status: res.statusCode,
-          body: parsed,
-        });
+        let parsed; try { parsed = JSON.parse(body); } catch { parsed = body; }
+        resolve({ status: res.statusCode, body: parsed });
       });
     }).on('error', (err) => resolve({ status: 0, error: err.message }));
+
+    req.setTimeout(5000, () => {
+      req.destroy();
+      resolve({ status: 0, error: 'Benchmark client timeout' });
+    });
   });
 }
 
-async function startServers() {
-  console.log('  Starting backend server on port 4001...');
+async function assert(expected, label) {
+  const res = await httpGet();
+  const pass = res.status === expected;
+  if (!pass) {
+    console.log(`  ✗ [${res.status}] ${label} ${res.error ? `(Error: ${res.error})` : ''}`);
+    throw new Error(`Expected ${expected}, got ${res.status}: ${label}`);
+  }
+  console.log(`  ✓ [${res.status}] ${label}`);
+  return res;
+}
+
+// 2. Trips circuit breaker sequentially to avoid triggering concurrency limiters
+async function tripCircuit() {
+  const n = Math.ceil(config.circuitBreaker.windowSize * config.circuitBreaker.failureRateThreshold);
+  for (let i = 1; i <= n; i++) {
+    await assert(502, `Failure ${i}/${n}`);
+  }
+}
+
+function spawnBackend() {
   backendProcess = spawn('node', ['benchmarks/mockBackend.js', '--port=4001']);
-  
-  // Wait for backend to start before starting gateway
+}
+
+// 3. Process lifecycle manager for isolated test environment
+async function startServers() {
+  spawnBackend();
   await sleep(1000);
-
-  console.log(`  Starting gateway on port ${PORT}...`);
-  // Override health check interval so it doesn't interfere, and reduce cooldown for faster tests
   gatewayProcess = spawn('node', ['src/server.js'], {
-    env: { ...process.env, HEALTH_CHECK_INTERVAL: '100000' }
+    env: { ...process.env, HEALTH_CHECK_INTERVAL: '100000', CIRCUIT_COOLDOWN_MS: '2000' }
   });
-
   await sleep(2000);
 }
 
@@ -55,62 +66,41 @@ function stopServers() {
   if (backendProcess) backendProcess.kill();
 }
 
+// 4. Executes full state lifecycle (CLOSED -> OPEN -> HALF_OPEN -> OPEN -> HALF_OPEN -> CLOSED)
 async function main() {
-  console.log('\n  Circuit Breaker Test');
-  console.log('  ─────────────────────────────────────\n');
+  console.log('\n  Circuit Breaker Lifecycle Test\n');
 
   try {
     await startServers();
 
-    console.log('\n--- Step 1: Normal Traffic (Circuit CLOSED) ---');
-    let res = await httpGet();
-    console.log(`Request 1 Status: ${res.status} (Expected 200)`);
-    if (res.status !== 200) throw new Error('Backend should be healthy');
+    console.log('Step 1: Normal Traffic (CLOSED)');
+    await assert(200, 'Backend is healthy');
 
-    console.log('\n--- Step 2: Force Backend Failures ---');
-    console.log('Killing the backend server to simulate a crash...');
+    console.log('\nStep 2: Kill Backend → Trip to OPEN');
     backendProcess.kill();
-    await sleep(500); // Give it time to die
+    await sleep(500);
+    await tripCircuit();
+    await assert(503, 'Circuit is OPEN, instant 503');
 
-    // Hit the gateway enough times to trip the threshold (default 5)
-    for (let i = 1; i <= config.circuitBreaker.failureThreshold; i++) {
-      res = await httpGet();
-      // It should return 502 Bad Gateway because proxy is failing to connect
-      console.log(`Failure Request ${i} Status: ${res.status} (Expected 502)`);
-    }
+    console.log('\nStep 3: Cooldown → Failed Probe (HALF_OPEN → OPEN)');
+    await cooldown();
+    let [probe, blocked] = await Promise.all([httpGet(), httpGet()]);
+    console.log(`  ✓ [${probe.status}] Probe (backend still dead)`);
+    console.log(`  ✓ [${blocked.status}] Second request blocked by probeInFlight`);
+    if (blocked.status !== 503) throw new Error('probeInFlight logic failed!');
+    await assert(503, 'Back to OPEN after failed probe');
 
-    console.log('\n--- Step 3: Verify Circuit is OPEN ---');
-    res = await httpGet();
-    console.log(`Open Circuit Request Status: ${res.status} (Expected 503)`);
-    if (res.status !== 503) throw new Error('Circuit Breaker did not trip to OPEN!');
-    console.log('Success! The Gateway is now instantly rejecting traffic with 503 without hitting the backend.');
+    console.log('\nStep 4: Restart Backend → Successful Probe (HALF_OPEN → CLOSED)');
+    spawnBackend();
+    await cooldown();
+    await assert(200, 'Probe succeeded, circuit recovering');
 
-    console.log(`\n--- Step 4: Wait for Cooldown (${config.circuitBreaker.cooldownMs / 1000}s) ---`);
-    console.log('Waiting...');
-    await sleep(config.circuitBreaker.cooldownMs + 500);
+    console.log('\nStep 5: Verify Recovery (CLOSED)');
+    await assert(200, 'Traffic flowing normally');
 
-    console.log('\n--- Step 5: Verify HALF_OPEN (Probe in flight) ---');
-    console.log('Sending first request. It should be allowed through as a probe.');
-    let probePromise1 = httpGet();
-    
-    // Immediately send a second request while the first is in-flight
-    let probePromise2 = httpGet();
-
-    let [res1, res2] = await Promise.all([probePromise1, probePromise2]);
-    
-    console.log(`Probe 1 Status: ${res1.status} (Expected 502, because backend is still dead)`);
-    console.log(`Probe 2 Status: ${res2.status} (Expected 503, because only ONE probe is allowed in flight)`);
-    
-    if (res2.status !== 503) throw new Error('probeInFlight logic failed! Second request was not blocked.');
-
-    console.log('\n--- Step 6: Verify Circuit Tripped back to OPEN ---');
-    res = await httpGet();
-    console.log(`Follow-up Request Status: ${res.status} (Expected 503)`);
-    if (res.status !== 503) throw new Error('Circuit did not flip back to OPEN after probe failed!');
-
-    console.log('\n  ✅ Circuit Breaker implementation passed all tests!');
+    console.log('\n  ✅ PASSED: CLOSED → OPEN → HALF_OPEN → OPEN → HALF_OPEN → CLOSED\n');
   } catch (err) {
-    console.error('\n  ❌ Test failed:', err.message);
+    console.error('\n  ❌ FAILED:', err.message, '\n');
   } finally {
     stopServers();
   }

@@ -16,7 +16,7 @@ local requestId = ARGV[4]
 local cutoffTime = currentTime - leaseTimeout
 redis.call('ZREMRANGEBYSCORE', key, '-inf', cutoffTime)
 
--- Step 2: Count how many active requests remain
+-- Step 2: Count how many active requests remain 
 local activeRequests = redis.call('ZCARD', key)
 
 -- Step 3: Check if adding one more would exceed the limit
