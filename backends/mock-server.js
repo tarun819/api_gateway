@@ -1,14 +1,25 @@
 // backends/mock-server.js
-// Spins up 3 tiny HTTP servers that pretend to be real backend services.
-// Each one responds to:
-//   GET /           → { backend: <port>, timestamp: <now> }
-//   GET /health     → 200 OK if healthy, 500 if toggled down
-//   GET /toggle-health → flips the health state, returns new status
-//
-// Usage: node backends/mock-server.js
 
 const http = require('http');
 const config = require('../src/config');
+
+/**
+ * Determines which service name a backend port belongs to
+ * by looking up the route table in config.
+ *
+ * @param {number} port - The backend's port number.
+ * @returns {string} The service name derived from the route prefix, e.g. 'users'.
+ */
+function getServiceName(port) {
+  for (const [prefix, pool] of Object.entries(config.routes)) {
+    if (pool.some(b => b.port === port)) {
+      // Extract service name from prefix: '/api/users' → 'users'
+      const parts = prefix.split('/').filter(Boolean);
+      return parts[parts.length - 1] || 'default';
+    }
+  }
+  return 'unknown';
+}
 
 /**
  * Creates and starts a single mock backend server.
@@ -20,6 +31,7 @@ function createBackend(port) {
   // Each backend tracks its own health state independently.
   // Starts healthy (true). Use /toggle-health to flip it.
   let isHealthy = true;
+  const serviceName = getServiceName(port);
 
   const server = http.createServer((req, res) => {
     // Set JSON content type for all responses
@@ -28,14 +40,14 @@ function createBackend(port) {
     if (req.url === '/health') {
       // Health check endpoint.
       // Returns 200 if healthy, 500 if not.
-      // The gateway's health checker (Phase 4) will poll this endpoint
+      // The gateway's health checker will poll this endpoint
       // periodically to decide whether to route traffic here.
       if (isHealthy) {
         res.writeHead(200);
-        res.end(JSON.stringify({ status: 'healthy', backend: port }));
+        res.end(JSON.stringify({ status: 'healthy', service: serviceName, backend: port }));
       } else {
         res.writeHead(500);
-        res.end(JSON.stringify({ status: 'unhealthy', backend: port }));
+        res.end(JSON.stringify({ status: 'unhealthy', service: serviceName, backend: port }));
       }
 
     } else if (req.url === '/toggle-health') {
@@ -46,38 +58,44 @@ function createBackend(port) {
       const newStatus = isHealthy ? 'healthy' : 'unhealthy';
       res.writeHead(200);
       res.end(JSON.stringify({
+        service: serviceName,
         backend: port,
         status: newStatus,
-        message: `Backend ${port} is now ${newStatus}`,
+        message: `${serviceName}-service on port ${port} is now ${newStatus}`,
       }));
-      console.log(`[Backend ${port}] Health toggled → ${newStatus}`);
+      console.log(`[${serviceName}-service:${port}] Health toggled → ${newStatus}`);
 
     } else {
-      // Default route: respond with which backend handled the request.
-      // When the gateway is load-balancing, you'll see different port
-      // numbers in the response as it cycles through backends.
+      // Service-specific response.
+      // When the gateway routes correctly, you'll see the right service name
+      // in the response for each URL path.
       res.writeHead(200);
       res.end(JSON.stringify({
+        service: serviceName,
         backend: port,
+        path: req.url,
         timestamp: new Date().toISOString(),
-        message: `Hello from backend ${port}`,
+        message: `Hello from ${serviceName}-service on port ${port}`,
       }));
     }
   });
 
   server.listen(port, () => {
-    console.log(`[Backend ${port}] Mock server running on http://localhost:${port}`);
+    console.log(`[${serviceName}-service:${port}] Running on http://localhost:${port}`);
   });
 
   return server;
 }
 
-// Start all three backends defined in config
+// Start all backends defined across all routes in config
 const servers = config.backends.map(b => createBackend(b.port));
 
 console.log(`\n✅ All ${servers.length} mock backends are running.`);
-console.log('   Test with:');
+console.log('   Route → Backend mapping:');
+for (const [prefix, pool] of Object.entries(config.routes)) {
+  console.log(`     ${prefix.padEnd(20)} → ports [${pool.map(b => b.port).join(', ')}]`);
+}
+console.log('\n   Test individual backends with:');
 console.log('     curl http://localhost:4001/');
 console.log('     curl http://localhost:4001/health');
-console.log('     curl http://localhost:4001/toggle-health');
-console.log('     curl http://localhost:4001/health   (should now return 500)\n');
+console.log('     curl http://localhost:4001/toggle-health\n');

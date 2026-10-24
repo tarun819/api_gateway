@@ -1,4 +1,3 @@
-// benchmarks/run-two-instance.js - Distributed multi-gateway rate limit verification
 const { spawn } = require('child_process');
 const http = require('http');
 
@@ -7,8 +6,7 @@ const PORT_B = 8081;
 const STARTUP_WAIT_MS = 2000;
 const REFILL_WAIT_MS = 6000;
 
-// 1. Vanilla HTTP client helper
-function httpGet(port, path = '/') {
+function httpGet(port, path = '/api/users') {
   return new Promise((resolve, reject) => {
     http.get(`http://localhost:${port}${path}`, (res) => {
       let body = '';
@@ -63,7 +61,26 @@ async function runTests() {
   }
 }
 
-// 2. Test 1: Shared Redis rate limit verification (draining A blocks B)
+test('Round-robin is independent per instance', async () => {
+  const resA1 = await httpGet(PORT_A);
+  const resA2 = await httpGet(PORT_A);
+  const resB1 = await httpGet(PORT_B);
+  const resB2 = await httpGet(PORT_B);
+
+  if (resA1.status !== 200 || resA2.status !== 200 || resB1.status !== 200 || resB2.status !== 200) {
+    console.log('    (got non-200 — cannot verify round-robin)');
+    return false;
+  }
+
+  const aRotated = resA1.body.backend !== resA2.body.backend;
+  const bIndependent = resB1.body.backend === resA1.body.backend;
+
+  if (!aRotated) console.log(`    [Debug] A didn't rotate: ${resA1.body.backend} → ${resA2.body.backend}`);
+  if (!bIndependent) console.log(`    [Debug] B not independent: B got ${resB1.body.backend}, A started at ${resA1.body.backend}`);
+
+  return aRotated && bIndependent;
+});
+
 test('Shared rate limit: exhaust on A → blocked on B', async () => {
   for (let i = 0; i < 15; i++) {
     await httpGet(PORT_A);
@@ -76,7 +93,6 @@ test('Shared rate limit: exhaust on A → blocked on B', async () => {
   return res.status === 429;
 });
 
-// 3. Test 2: Token refill verification
 test('Rate limit refills: B allows after waiting', async () => {
   console.log(`\n    ⏳ Waiting ${REFILL_WAIT_MS / 1000}s for tokens to refill...`);
   await sleep(REFILL_WAIT_MS);
@@ -85,7 +101,6 @@ test('Rate limit refills: B allows after waiting', async () => {
   return res.status === 200;
 });
 
-// 4. Test 3-5: Header propagation, independent round-robin, and metrics endpoint verification
 test('Rate-limit headers present on both instances', async () => {
   const resA = await httpGet(PORT_A);
   const resB = await httpGet(PORT_B);
@@ -95,34 +110,38 @@ test('Rate-limit headers present on both instances', async () => {
   return hasHeaderA && hasHeaderB;
 });
 
-test('Round-robin is independent per instance', async () => {
-  await sleep(REFILL_WAIT_MS);
-
-  const resA1 = await httpGet(PORT_A);
-  const resA2 = await httpGet(PORT_A);
-  const resB1 = await httpGet(PORT_B);
-  const resB2 = await httpGet(PORT_B);
-
-  if (resA1.status !== 200 || resB1.status !== 200) {
-    console.log('    (got 429 — not enough tokens to test round-robin)');
-    return true;
-  }
-
-  const aBackend = resA1.body && resA1.body.backend;
-  const bBackend = resB1.body && resB1.body.backend;
-  return aBackend !== undefined && bBackend !== undefined;
-});
-
-test('Metrics endpoint accessible on both instances', async () => {
+test('Metrics are independent per instance', async () => {
   const metricsA = await httpGet(PORT_A, '/metrics');
   const metricsB = await httpGet(PORT_B, '/metrics');
 
-  const aOk = metricsA.status === 200 && metricsA.body.totalRequests !== undefined;
-  const bOk = metricsB.status === 200 && metricsB.body.totalRequests !== undefined;
-  return aOk && bOk;
+  if (metricsA.status !== 200 || metricsB.status !== 200) {
+    return false;
+  }
+
+  const baseA = metricsA.body.totalRequests;
+  const baseB = metricsB.body.totalRequests;
+
+  const REQUEST_COUNT = 3;
+  for (let i = 0; i < REQUEST_COUNT; i++) {
+    await httpGet(PORT_A);
+  }
+
+  const afterA = (await httpGet(PORT_A, '/metrics')).body.totalRequests;
+  const afterB = (await httpGet(PORT_B, '/metrics')).body.totalRequests;
+
+  const aIncremented = afterA === baseA + REQUEST_COUNT;
+  const bUnchanged = afterB === baseB;
+
+  if (!aIncremented) {
+    console.log(`    [Debug] Expected A to increase by ${REQUEST_COUNT}, went from ${baseA} to ${afterA}`);
+  }
+  if (!bUnchanged) {
+    console.log(`    [Debug] Expected B to stay unchanged, went from ${baseB} to ${afterB}`);
+  }
+
+  return aIncremented && bUnchanged;
 });
 
-// 5. Test orchestrator spawning & tearing down gateway processes
 async function main() {
   console.log('\n  Two-Instance Distributed Test');
   console.log('  ─────────────────────────────────────\n');

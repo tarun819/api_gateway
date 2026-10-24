@@ -7,13 +7,25 @@ const config = {
   // Can be overridden via command line: node src/server.js --port=8081
   gatewayPort: parseInt(process.env.GATEWAY_PORT, 10) || 8080,
 
-  // List of backend servers the gateway will load-balance across.
-  // Each entry is { host, port } — all on localhost for development.
-  backends: [
-    { host: '127.0.0.1', port: 4001 },
-    { host: '127.0.0.1', port: 4002 },
-    { host: '127.0.0.1', port: 4003 },
-  ],
+  // --- API Gateway Route Table ---
+  // Maps URL path prefixes to backend pools.
+  // Each route has its own set of backend instances that are load-balanced
+  // independently via per-pool round-robin.
+  //
+  // Matching uses longest-prefix-first: a request to /api/users/123
+  // matches '/api/users' (not '/api' or '/').
+  //
+  // The '/' route acts as a catch-all default for any unmatched path.
+  routes: {
+    '/api/users':    [{ host: '127.0.0.1', port: 4001 }, { host: '127.0.0.1', port: 4002 }],
+    '/api/orders':   [{ host: '127.0.0.1', port: 4003 }, { host: '127.0.0.1', port: 4004 }],
+    '/api/products': [{ host: '127.0.0.1', port: 4005 }, { host: '127.0.0.1', port: 4006 }],
+  },
+
+  // Flat list of ALL unique backends across all routes.
+  // Auto-computed below — used by healthCheck.js to know which backends to ping.
+  // Do NOT edit this manually; it is derived from `routes`.
+  backends: [],
 
   // Health check settings
   healthCheck: {
@@ -57,6 +69,21 @@ const config = {
 const portArg = process.argv.find(arg => arg.startsWith('--port='));
 if (portArg) {
   config.gatewayPort = parseInt(portArg.split('=')[1], 10);
+}
+
+// --- Auto-compute flat backends list from routes ---
+// Flatten all backend pools into a single deduplicated array.
+// This is used by healthCheck.js to know which backends to ping,
+// and by mock-server.js to know which ports to spin up.
+const seen = new Set();
+for (const pool of Object.values(config.routes)) {
+  for (const backend of pool) {
+    const key = `${backend.host}:${backend.port}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      config.backends.push(backend);
+    }
+  }
 }
 
 module.exports = config;

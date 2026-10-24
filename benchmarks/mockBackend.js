@@ -1,4 +1,4 @@
-// benchmarks/mockBackend.js - Lightweight HTTP backend for load testing & benchmarks
+
 const http = require('http');
 
 let port = 4001;
@@ -7,7 +7,6 @@ if (portArg) {
   port = parseInt(portArg.split('=')[1], 10);
 }
 
-// 1. Responds to health checks & standard traffic with 10ms simulated latency
 const server = http.createServer((req, res) => {
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });

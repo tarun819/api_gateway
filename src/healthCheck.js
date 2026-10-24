@@ -1,22 +1,39 @@
-// src/healthCheck.js - Background periodic health check poller
+// src/healthCheck.js
+// Background health checker — runs on a timer, NOT on every request.
+
+
 const http = require('http');
 const config = require('./config');
+
 
 const status = {};
 config.backends.forEach((backend) => {
   status[backend.port] = 'up';
 });
 
-// 1. Get health status of specific backend or full map
+/**
+ * Returns the current health status of a backend.
+ *
+ * @param {string|number} port - The backend port to check.
+ * @returns {string} 'up' or 'down'.
+ */
 function getStatus(port) {
   return status[port] || 'down';
 }
 
+/**
+
+ * @returns {object} Copy of the status map, e.g. { 4001: 'up', 4002: 'down' }
+ */
 function getAllStatuses() {
   return { ...status };
 }
 
-// 2. Ping individual backend /health endpoint and update state map
+/**
+ * Pings a single backend's /health endpoint and updates the status map.
+ *
+ * @param {object} backend - The backend to check, e.g. { host: '127.0.0.1', port: 4001 }
+ */
 function checkBackend(backend) {
   const options = {
     hostname: backend.host,
@@ -27,7 +44,9 @@ function checkBackend(backend) {
   };
 
   const req = http.request(options, (res) => {
+
     res.resume();
+
     const previousStatus = status[backend.port];
     const newStatus = res.statusCode === 200 ? 'up' : 'down';
     status[backend.port] = newStatus;
@@ -53,6 +72,7 @@ function checkBackend(backend) {
   req.end();
 }
 
+
 function runHealthCheckCycle() {
   config.backends.forEach((backend) => {
     checkBackend(backend);
@@ -61,12 +81,13 @@ function runHealthCheckCycle() {
 
 let intervalId = null;
 
-// 3. Control background polling lifecycle
+
 function start() {
   runHealthCheckCycle();
   intervalId = setInterval(runHealthCheckCycle, config.healthCheck.intervalMs);
   console.log(`[HealthCheck] Started — checking every ${config.healthCheck.intervalMs}ms`);
 }
+
 
 function stop() {
   if (intervalId) {

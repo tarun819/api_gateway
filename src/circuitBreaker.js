@@ -1,4 +1,7 @@
-// src/circuitBreaker.js - Sliding window Circuit Breaker (CLOSED, OPEN, HALF_OPEN)
+// src/circuitBreaker.js
+// Sliding Window Circuit Breaker using a pre-filled ring buffer and running sum.
+// States: CLOSED (normal), OPEN (blocking 503), HALF_OPEN (single probe trial).
+
 const config = require('./config');
 
 const STATES = {
@@ -7,9 +10,9 @@ const STATES = {
   HALF_OPEN: 'HALF_OPEN',
 };
 
+
 const backends = new Map();
 
-// 1. O(1) sliding window ring buffer state helper
 function getBackendState(backendKey) {
   if (!backends.has(backendKey)) {
     const size = config.circuitBreaker.windowSize;
@@ -28,14 +31,18 @@ function getBackendState(backendKey) {
 function recordOutcome(record, success) {
   const oldValue = record.results[record.index];
   const newValue = success ? 1 : 0;
+
   record.sum += newValue - oldValue;
+
   record.results[record.index] = newValue;
   record.index = (record.index + 1) % record.results.length;
 }
 
+
 function getFailureRate(record) {
   return (record.results.length - record.sum) / record.results.length;
 }
+
 
 function resetWindow(record) {
   record.results.fill(1);
@@ -47,7 +54,11 @@ function logTransition(backendKey, from, to, reason) {
   console.log(`\n[CircuitBreaker] Backend ${backendKey}: ${from} -> ${to} (${reason})\n`);
 }
 
-// 2. Evaluates if traffic can route to a backend & manages HALF_OPEN single probe locks
+/**
+ *
+ * @param {object} backend - The backend object { host, port }
+ * @returns {boolean} True if safe to route, false if circuit is open.
+ */
 function canRoute(backend) {
   const key = `${backend.host}:${backend.port}`;
   const record = getBackendState(key);
@@ -60,22 +71,25 @@ function canRoute(backend) {
     if (Date.now() < record.nextAttemptTime) {
       return false;
     }
+
     record.state = STATES.HALF_OPEN;
     logTransition(key, STATES.OPEN, STATES.HALF_OPEN, 'Cooldown expired');
   }
 
   if (record.state === STATES.HALF_OPEN) {
     if (record.probeInFlight) {
-      return false; 
+      return false;
     }
-    record.probeInFlight = true; 
+    record.probeInFlight = true;
     return true;
   }
 
   return false;
 }
 
-// 3. Trip to OPEN when failure threshold is exceeded or when a HALF_OPEN probe fails
+/**
+ * Called by the proxy when a request fails (network error or 5xx status).
+ */
 function recordFailure(backend) {
   const key = `${backend.host}:${backend.port}`;
   const record = getBackendState(key);
@@ -83,10 +97,12 @@ function recordFailure(backend) {
   record.probeInFlight = false;
 
   if (record.state === STATES.HALF_OPEN) {
+
     record.state = STATES.OPEN;
     record.nextAttemptTime = Date.now() + config.circuitBreaker.cooldownMs;
     logTransition(key, STATES.HALF_OPEN, STATES.OPEN, 'Probe failed');
   } else if (record.state === STATES.CLOSED) {
+
     recordOutcome(record, false);
     const rate = getFailureRate(record);
     if (rate >= config.circuitBreaker.failureRateThreshold) {
@@ -98,12 +114,15 @@ function recordFailure(backend) {
   }
 }
 
-// 4. Recover circuit back to CLOSED on successful HALF_OPEN probe
+/**
+ * Called by the proxy when a request succeeds (2xx, 3xx, 4xx status).
+ */
 function recordSuccess(backend) {
   const key = `${backend.host}:${backend.port}`;
   const record = getBackendState(key);
 
   if (record.state === STATES.CLOSED) {
+
     recordOutcome(record, true);
   }
 

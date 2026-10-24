@@ -1,0 +1,628 @@
+Statistical profiling result from isolate-0x7a3080c000-7475-v8.log, (21042 ticks, 45 unaccounted, 0 excluded).
+
+ [Shared libraries]:
+   ticks  total  nonlib   name
+    153    0.7%          /usr/lib/system/libsystem_malloc.dylib
+     47    0.2%          /opt/homebrew/Cellar/node/26.10.0_2/lib/libnode.147.dylib
+     43    0.2%          /usr/lib/system/libdyld.dylib
+      4    0.0%          /usr/lib/system/libsystem_c.dylib
+      2    0.0%          /opt/homebrew/Cellar/simdutf/9.2.1_1/lib/libsimdutf.36.0.0.dylib
+      1    0.0%          /usr/lib/system/libsystem_m.dylib
+      1    0.0%          /usr/lib/libc++abi.dylib
+      1    0.0%          /usr/lib/libc++.1.dylib
+
+ [JavaScript]:
+   ticks  total  nonlib   name
+    140    0.7%    0.7%  JS: *writeOrBuffer node:internal/streams/writable:550:23
+    102    0.5%    0.5%  JS: *Command /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Command.js:37:16
+     94    0.4%    0.5%  RegExp: [^\t\x20-\x7e\x80-\xff]
+     94    0.4%    0.5%  JS: *onwrite node:internal/streams/writable:617:17
+     92    0.4%    0.4%  JS: *toWritable /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Script.js:16:23
+     81    0.4%    0.4%  JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     72    0.3%    0.3%  JS: *_storeHeader node:_http_outgoing:456:22
+     68    0.3%    0.3%  JS: *Readable node:internal/streams/readable:335:18
+     67    0.3%    0.3%  JS: *returnReply /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/DataHandler.js:50:16
+     61    0.3%    0.3%  JS: *parserOnIncoming node:_http_server:1267:26
+     61    0.3%    0.3%  JS: *nextTick node:internal/process/task_queues:113:18
+     60    0.3%    0.3%  JS: *_write node:internal/streams/writable:452:16
+     59    0.3%    0.3%  JS: *_writeRaw node:_http_outgoing:426:19
+     58    0.3%    0.3%  JS: *sendCommand /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Redis.js:338:16
+     58    0.3%    0.3%  JS: *ServerResponse node:_http_server:207:24
+     56    0.3%    0.3%  JS: *randomUUID node:internal/crypto/random:406:20
+     51    0.2%    0.2%  JS: *resOnFinish node:_http_server:1196:21
+     51    0.2%    0.2%  JS: *end node:_http_outgoing:1173:45
+     50    0.2%    0.2%  JS: *writeHead node:_http_server:411:19
+     50    0.2%    0.2%  JS: *acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+     49    0.2%    0.2%  JS: *Readable.on node:internal/streams/readable:1169:33
+     46    0.2%    0.2%  JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+     42    0.2%    0.2%  JS: *parserOnHeadersComplete node:_http_common:77:33
+     41    0.2%    0.2%  JS: *get node:_http_incoming:121:16
+     40    0.2%    0.2%  RegExp: ^[\^_`a-zA-Z\-0-9!#$%&'*+.|~]+$
+     34    0.2%    0.2%  JS: *writevGeneric node:internal/stream_base_commons:72:23
+     34    0.2%    0.2%  JS: *Readable.removeListener node:internal/streams/readable:1210:45
+     31    0.1%    0.1%  JS: *callback node:internal/streams/writable:766:63
+     28    0.1%    0.1%  JS: *write_ node:_http_outgoing:959:16
+     28    0.1%    0.1%  JS: *setHeader node:_http_outgoing:700:57
+     28    0.1%    0.1%  JS: *parserOnMessageComplete node:_http_common:143:33
+     28    0.1%    0.1%  JS: *Readable.read node:internal/streams/readable:669:35
+     27    0.1%    0.1%  JS: *setStreamTimeout node:internal/stream_base_commons:245:26
+     27    0.1%    0.1%  JS: *emit node:events:489:44
+     25    0.1%    0.1%  JS: *clearBuffer node:internal/streams/writable:746:21
+     24    0.1%    0.1%  JS: *endReadableNT node:internal/streams/readable:1968:23
+     22    0.1%    0.1%  JS: *_destroy node:_http_incoming:274:55
+     21    0.1%    0.1%  JS: *matchKnownFields node:_http_incoming:347:26
+     21    0.1%    0.1%  JS: *Socket._writeGeneric node:net:1293:42
+     19    0.1%    0.1%  JS: *get node:internal/streams/duplex:161:8
+     19    0.1%    0.1%  JS: *get node:internal/bootstrap/node:480:8
+     18    0.1%    0.1%  JS: *log node:internal/console/constructor:410:6
+     17    0.1%    0.1%  JS: *onParserExecute node:_http_server:964:25
+     16    0.1%    0.1%  JS: *unenroll node:timers:73:18
+     16    0.1%    0.1%  JS: *onFinish node:_http_outgoing:1158:18
+     16    0.1%    0.1%  JS: *onEofChunk node:internal/streams/readable:812:20
+     16    0.1%    0.1%  JS: *get node:net:2968:6
+     16    0.1%    0.1%  JS: *clearIncoming node:_http_server:1183:23
+     13    0.1%    0.1%  JS: *uncork node:_http_outgoing:301:51
+     13    0.1%    0.1%  JS: *refresh node:internal/timers:273:10
+     12    0.1%    0.1%  JS: *onParserExecuteCommon node:_http_server:1108:31
+     12    0.1%    0.1%  JS: *execute /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/redis-parser/lib/parser.js:491:11
+     11    0.1%    0.1%  JS: *slowCases node:internal/util:263:19
+     11    0.1%    0.1%  JS: *get node:internal/console/constructor:218:14
+     11    0.1%    0.1%  JS: *_send node:_http_outgoing:400:49
+     10    0.0%    0.0%  JS: *nop node:internal/streams/writable:94:13
+      9    0.0%    0.0%  JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      9    0.0%    0.0%  JS: *get node:internal/bootstrap/node:97:8
+      9    0.0%    0.0%  JS: *afterWriteTick node:internal/streams/writable:695:24
+      8    0.0%    0.0%  JS: *isAllowed /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/tokenBucket.js:37:25
+      8    0.0%    0.0%  JS: *insertGuarded node:internal/timers:400:23
+      8    0.0%    0.0%  JS: *handleMonitorReply /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/DataHandler.js:150:23
+      7    0.0%    0.0%  JS: *get /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/debug/src/common.js:125:9
+      7    0.0%    0.0%  JS: *emitCloseNT node:internal/streams/destroy:133:21
+      7    0.0%    0.0%  JS: *emitCloseNT node:_http_server:1252:21
+      7    0.0%    0.0%  JS: *addListener node:events:615:58
+      7    0.0%    0.0%  JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:79:19
+      5    0.0%    0.0%  JS: *toWritable /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Command.js:111:15
+      5    0.0%    0.0%  JS: *insert node:internal/timers:426:16
+      5    0.0%    0.0%  JS: *get /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/debug.js:75:16
+      5    0.0%    0.0%  JS: *fromList node:internal/streams/readable:1845:18
+      5    0.0%    0.0%  JS: *Socket.read node:net:1131:33
+      4    0.0%    0.0%  JS: +onStreamRead node:internal/stream_base_commons:171:22
+      4    0.0%    0.0%  JS: *onStreamRead node:internal/stream_base_commons:171:22
+      4    0.0%    0.0%  JS: *listenerCount node:events:835:62
+      4    0.0%    0.0%  JS: *initAsyncResource node:internal/timers:203:27
+      4    0.0%    0.0%  JS: *Readable.push node:internal/streams/readable:402:35
+      3    0.0%    0.0%  JS: +handleSubscriberReply /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/DataHandler.js:77:26
+      3    0.0%    0.0%  JS: +Command /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Command.js:37:16
+      3    0.0%    0.0%  JS: *setInterval node:timers:167:21
+      3    0.0%    0.0%  JS: *nop node:_http_outgoing:95:13
+      3    0.0%    0.0%  JS: *get node:internal/streams/readable:1678:8
+      3    0.0%    0.0%  JS: *emitReadable_ node:internal/streams/readable:863:23
+      3    0.0%    0.0%  JS: *_addListener node:events:545:22
+      3    0.0%    0.0%  JS: *OutgoingMessage._isLenientHeaderValidation node:_http_outgoing:173:64
+      3    0.0%    0.0%  JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:101:21
+      2    0.0%    0.0%  JS: ^writeHead node:_http_server:411:19
+      2    0.0%    0.0%  JS: +write_ node:_http_outgoing:959:16
+      2    0.0%    0.0%  JS: +unenroll node:timers:73:18
+      2    0.0%    0.0%  JS: +endReadableNT node:internal/streams/readable:1968:23
+      2    0.0%    0.0%  JS: +addChunk node:internal/streams/readable:565:18
+      2    0.0%    0.0%  JS: +_storeHeader node:_http_outgoing:456:22
+      2    0.0%    0.0%  JS: *recordBlocked /Users/chatrapalsinghlodhi/projects/api_gateway/src/metrics.js:29:23
+      2    0.0%    0.0%  JS: *onDestroy node:internal/streams/destroy:93:21
+      2    0.0%    0.0%  JS: *addChunk node:internal/streams/readable:565:18
+      2    0.0%    0.0%  JS: *CustomScriptCommand /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Script.js:15:24
+      2    0.0%    0.0%  JS: *<anonymous> node:internal/console/constructor:382:10
+      1    0.0%    0.0%  RegExp: ^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$
+      1    0.0%    0.0%  JS: ^processHeader node:_http_outgoing:593:23
+      1    0.0%    0.0%  JS: ^get node:_http_outgoing:262:16
+      1    0.0%    0.0%  JS: ^checkIsHttpToken node:_http_common:243:26
+      1    0.0%    0.0%  JS: ^Readable.read node:internal/streams/readable:669:35
+      1    0.0%    0.0%  JS: +writeOrBuffer node:internal/streams/writable:550:23
+      1    0.0%    0.0%  JS: +serializeUUID node:internal/crypto/random:363:23
+      1    0.0%    0.0%  JS: +sendCommand /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Redis.js:338:16
+      1    0.0%    0.0%  JS: +resOnFinish node:_http_server:1196:21
+      1    0.0%    0.0%  JS: +randomFillSync node:internal/crypto/random:120:24
+      1    0.0%    0.0%  JS: +push /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/denque/index.js:136:38
+      1    0.0%    0.0%  JS: +parserOnMessageComplete node:_http_common:143:33
+      1    0.0%    0.0%  JS: +onParserExecuteCommon node:_http_server:1108:31
+      1    0.0%    0.0%  JS: +onEofChunk node:internal/streams/readable:812:20
+      1    0.0%    0.0%  JS: +nextTick node:internal/process/task_queues:113:18
+      1    0.0%    0.0%  JS: +isAllowed /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/tokenBucket.js:37:25
+      1    0.0%    0.0%  JS: +insert node:internal/timers:426:16
+      1    0.0%    0.0%  JS: +get node:net:1055:16
+      1    0.0%    0.0%  JS: +get node:internal/streams/readable:198:8
+      1    0.0%    0.0%  JS: +get node:internal/streams/readable:1771:8
+      1    0.0%    0.0%  JS: +get node:internal/streams/readable:1747:8
+      1    0.0%    0.0%  JS: +get node:internal/streams/readable:147:8
+      1    0.0%    0.0%  JS: +get node:_http_incoming:121:16
+      1    0.0%    0.0%  JS: +emitReadable_ node:internal/streams/readable:863:23
+      1    0.0%    0.0%  JS: +emitReadable node:internal/streams/readable:852:22
+      1    0.0%    0.0%  JS: +emitDestroyScript node:internal/async_hooks:535:27
+      1    0.0%    0.0%  JS: +clearBuffer node:internal/streams/writable:746:21
+      1    0.0%    0.0%  JS: +assertOffset node:internal/crypto/random:72:22
+      1    0.0%    0.0%  JS: +assert node:internal/assert:8:16
+      1    0.0%    0.0%  JS: +acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+      1    0.0%    0.0%  JS: +_writeRaw node:_http_outgoing:426:19
+      1    0.0%    0.0%  JS: +_flush node:_http_outgoing:1300:51
+      1    0.0%    0.0%  JS: +TimersList node:internal/timers:306:14
+      1    0.0%    0.0%  JS: +ServerResponse node:_http_server:207:24
+      1    0.0%    0.0%  JS: +Readable.read node:internal/streams/readable:669:35
+      1    0.0%    0.0%  JS: +Readable.push node:internal/streams/readable:402:35
+      1    0.0%    0.0%  JS: +Readable node:internal/streams/readable:335:18
+      1    0.0%    0.0%  JS: +IncomingMessage node:_http_incoming:58:25
+      1    0.0%    0.0%  JS: +<anonymous> node:internal/validators:471:42
+      1    0.0%    0.0%  JS: +<anonymous> node:events:332:29
+      1    0.0%    0.0%  JS: *writeGeneric node:internal/stream_base_commons:93:22
+      1    0.0%    0.0%  JS: *stringifyArguments /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Command.js:159:23
+      1    0.0%    0.0%  JS: *release /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:52:23
+      1    0.0%    0.0%  JS: *parseArrayElements /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/redis-parser/lib/parser.js:255:29
+      1    0.0%    0.0%  JS: *handleSubscriberReply /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/DataHandler.js:77:26
+      1    0.0%    0.0%  JS: *get node:net:1055:16
+      1    0.0%    0.0%  JS: *get node:internal/streams/readable:147:8
+      1    0.0%    0.0%  JS: *doWrite node:internal/streams/writable:589:17
+      1    0.0%    0.0%  JS: *OutgoingMessage node:_http_outgoing:110:25
+      1    0.0%    0.0%  JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/DataHandler.js:25:46
+
+ [C++]:
+   ticks  total  nonlib   name
+   7240   34.4%   34.8%  T _guarded_open_np
+   6226   29.6%   29.9%  T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+   4024   19.1%   19.4%  T _chmod
+    172    0.8%    0.8%  T node::loader::ModuleCacheKey::ToString() const
+    161    0.8%    0.8%  T ___platform_sigaction
+    109    0.5%    0.5%  T simdutf::arm64::implementation::validate_utf8(char const*, unsigned long) const
+     46    0.2%    0.2%  T _uv_accept
+     38    0.2%    0.2%  T _mach_vm_map
+     24    0.1%    0.1%  T __kernelrpc_mach_port_get_refs
+     17    0.1%    0.1%  t node::InitializeOncePerProcessInternal(std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>>> const&, node::ProcessInitializationFlags::Flags)
+     15    0.1%    0.1%  t _uv__server_io
+     13    0.1%    0.1%  t ___simple_bprintf
+     11    0.1%    0.1%  T _uv_shutdown
+     11    0.1%    0.1%  T _pthread_mutex_lock
+     11    0.1%    0.1%  T ___guarded_open_np
+      8    0.0%    0.0%  t _uv__unknown_err_code
+      7    0.0%    0.0%  t __os_nospin_lock_unlock_slow
+      7    0.0%    0.0%  t __os_nospin_lock_lock_slow
+      7    0.0%    0.0%  T node::Reindent(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, int)
+      7    0.0%    0.0%  T _simdutf_convert_valid_utf8_to_utf16be
+      7    0.0%    0.0%  T _aes_v8_cbc_encrypt
+      6    0.0%    0.0%  t simdjson::internal::fractured_string_builder::format_element(simdjson::dom::element const&, simdjson::internal::element_metrics const&, unsigned long, bool)
+      6    0.0%    0.0%  t __os_once_gate_broadcast
+      6    0.0%    0.0%  T simdutf::convert_utf32_to_latin1_with_errors(char32_t const*, unsigned long, char*)
+      5    0.0%    0.0%  T _task_get_special_port
+      4    0.0%    0.0%  t std::__1::deque<node::MemoryRetainerNode*, std::__1::allocator<node::MemoryRetainerNode*>>::push_back(node::MemoryRetainerNode* const&)
+      4    0.0%    0.0%  t _uv__write_callbacks
+      4    0.0%    0.0%  t _uv__drain
+      4    0.0%    0.0%  T _mach_vm_region
+      3    0.0%    0.0%  t _uv__work_done
+      3    0.0%    0.0%  T _uv_loop_close
+      3    0.0%    0.0%  T _chdir
+      2    0.0%    0.0%  t _put_str
+      2    0.0%    0.0%  t _kmac_set_ctx_params
+      2    0.0%    0.0%  T simdutf::convert_utf32_to_utf16be(char32_t const*, unsigned long, char16_t*)
+      2    0.0%    0.0%  T _mig_get_reply_port
+      2    0.0%    0.0%  T _mach_vm_deallocate
+      2    0.0%    0.0%  T __kernelrpc_vm_map
+      2    0.0%    0.0%  T _OSAtomicCompareAndSwap64
+      1    0.0%    0.0%  t simdjson::internal::fractured_string_builder::format_array_as_table(simdjson::dom::array const&, simdjson::internal::element_metrics const&, unsigned long)
+      1    0.0%    0.0%  t node::fs::RMDir(v8::FunctionCallbackInfo<v8::Value> const&)
+      1    0.0%    0.0%  t node::cares_wrap::(anonymous namespace)::SetServers(v8::FunctionCallbackInfo<v8::Value> const&)
+      1    0.0%    0.0%  t _tdes_wrap_cipher
+      1    0.0%    0.0%  t _rand_drbg_restart
+      1    0.0%    0.0%  t _ossl_prov_drbg_reseed_unlocked
+      1    0.0%    0.0%  t _ossl_aes_256_gcm_siv_get_params
+      1    0.0%    0.0%  t _core_provider_free_intern
+      1    0.0%    0.0%  t _cipher_generic_init_internal
+      1    0.0%    0.0%  t _OSSL_STORE_LOADER_get0_properties.cold.1
+      1    0.0%    0.0%  T simdutf::convert_valid_utf32_to_latin1(char32_t const*, unsigned long, char*)
+      1    0.0%    0.0%  T simdutf::convert_utf32_to_utf16le_with_errors(char32_t const*, unsigned long, char16_t*)
+      1    0.0%    0.0%  T simdutf::convert_utf32_to_utf16be_with_errors(char32_t const*, unsigned long, char16_t*)
+      1    0.0%    0.0%  T absl::lts_20260817::CondVar::WaitCommon(absl::lts_20260817::Mutex*, absl::lts_20260817::synchronization_internal::KernelTimeout)
+      1    0.0%    0.0%  T _pwrite
+      1    0.0%    0.0%  T _pthread_mutex_init
+      1    0.0%    0.0%  T _ossl_rand_drbg_new
+      1    0.0%    0.0%  T _ossl_rand_ctx_free
+      1    0.0%    0.0%  T _ossl_property_is_enabled
+      1    0.0%    0.0%  T _evp_pkey_copy_downgraded
+      1    0.0%    0.0%  T _OSAtomicIncrement32
+      1    0.0%    0.0%  T _OPENSSL_cleanup
+      1    0.0%    0.0%  T _ENGINE_set_default_ciphers
+      1    0.0%    0.0%  T _CRYPTO_ccm128_aad
+      1    0.0%    0.0%  T _AES_encrypt
+
+ [Summary]:
+   ticks  total  nonlib   name
+   2497   11.9%   12.0%  JavaScript
+  18248   86.7%   87.8%  C++
+     90    0.4%    0.4%  GC
+    252    1.2%          Shared libraries
+     45    0.2%          Unaccounted
+
+ [C++ entry points]:
+   ticks    cpp   total   name
+   7240   41.0%   34.4%  T _guarded_open_np
+   5675   32.1%   27.0%  T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+   4024   22.8%   19.1%  T _chmod
+    172    1.0%    0.8%  T node::loader::ModuleCacheKey::ToString() const
+    161    0.9%    0.8%  T ___platform_sigaction
+    109    0.6%    0.5%  T simdutf::arm64::implementation::validate_utf8(char const*, unsigned long) const
+     46    0.3%    0.2%  T _uv_accept
+     38    0.2%    0.2%  T _mach_vm_map
+     17    0.1%    0.1%  t node::InitializeOncePerProcessInternal(std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>, std::__1::allocator<std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>>> const&, node::ProcessInitializationFlags::Flags)
+     15    0.1%    0.1%  t _uv__server_io
+     13    0.1%    0.1%  t ___simple_bprintf
+     11    0.1%    0.1%  T _uv_shutdown
+     11    0.1%    0.1%  T _pthread_mutex_lock
+     11    0.1%    0.1%  T ___guarded_open_np
+      8    0.0%    0.0%  t _uv__unknown_err_code
+      7    0.0%    0.0%  t __os_nospin_lock_lock_slow
+      7    0.0%    0.0%  T node::Reindent(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, int)
+      7    0.0%    0.0%  T _simdutf_convert_valid_utf8_to_utf16be
+      7    0.0%    0.0%  T _aes_v8_cbc_encrypt
+      6    0.0%    0.0%  t simdjson::internal::fractured_string_builder::format_element(simdjson::dom::element const&, simdjson::internal::element_metrics const&, unsigned long, bool)
+      6    0.0%    0.0%  T simdutf::convert_utf32_to_latin1_with_errors(char32_t const*, unsigned long, char*)
+      5    0.0%    0.0%  T _task_get_special_port
+      4    0.0%    0.0%  t std::__1::deque<node::MemoryRetainerNode*, std::__1::allocator<node::MemoryRetainerNode*>>::push_back(node::MemoryRetainerNode* const&)
+      4    0.0%    0.0%  t _uv__write_callbacks
+      4    0.0%    0.0%  t _uv__drain
+      4    0.0%    0.0%  t __os_once_gate_broadcast
+      3    0.0%    0.0%  t _uv__work_done
+      3    0.0%    0.0%  t __os_nospin_lock_unlock_slow
+      3    0.0%    0.0%  T _uv_loop_close
+      3    0.0%    0.0%  T _chdir
+      2    0.0%    0.0%  t _put_str
+      2    0.0%    0.0%  t _kmac_set_ctx_params
+      2    0.0%    0.0%  T simdutf::convert_utf32_to_utf16be(char32_t const*, unsigned long, char16_t*)
+      2    0.0%    0.0%  T _mig_get_reply_port
+      2    0.0%    0.0%  T _mach_vm_deallocate
+      2    0.0%    0.0%  T __kernelrpc_vm_map
+      2    0.0%    0.0%  T _OSAtomicCompareAndSwap64
+      1    0.0%    0.0%  t simdjson::internal::fractured_string_builder::format_array_as_table(simdjson::dom::array const&, simdjson::internal::element_metrics const&, unsigned long)
+      1    0.0%    0.0%  t node::fs::RMDir(v8::FunctionCallbackInfo<v8::Value> const&)
+      1    0.0%    0.0%  t node::cares_wrap::(anonymous namespace)::SetServers(v8::FunctionCallbackInfo<v8::Value> const&)
+      1    0.0%    0.0%  t _tdes_wrap_cipher
+      1    0.0%    0.0%  t _rand_drbg_restart
+      1    0.0%    0.0%  t _ossl_prov_drbg_reseed_unlocked
+      1    0.0%    0.0%  t _ossl_aes_256_gcm_siv_get_params
+      1    0.0%    0.0%  t _core_provider_free_intern
+      1    0.0%    0.0%  t _cipher_generic_init_internal
+      1    0.0%    0.0%  t _OSSL_STORE_LOADER_get0_properties.cold.1
+      1    0.0%    0.0%  T simdutf::convert_valid_utf32_to_latin1(char32_t const*, unsigned long, char*)
+      1    0.0%    0.0%  T simdutf::convert_utf32_to_utf16le_with_errors(char32_t const*, unsigned long, char16_t*)
+      1    0.0%    0.0%  T simdutf::convert_utf32_to_utf16be_with_errors(char32_t const*, unsigned long, char16_t*)
+      1    0.0%    0.0%  T _pthread_mutex_init
+      1    0.0%    0.0%  T _ossl_rand_drbg_new
+      1    0.0%    0.0%  T _ossl_rand_ctx_free
+      1    0.0%    0.0%  T _ossl_property_is_enabled
+      1    0.0%    0.0%  T _mach_vm_region
+      1    0.0%    0.0%  T _evp_pkey_copy_downgraded
+      1    0.0%    0.0%  T __kernelrpc_mach_port_get_refs
+      1    0.0%    0.0%  T _ENGINE_set_default_ciphers
+      1    0.0%    0.0%  T _CRYPTO_ccm128_aad
+      1    0.0%    0.0%  T _AES_encrypt
+
+ [Bottom up (heavy) profile]:
+  Note: percentage shows a share of a particular caller in the total
+  amount of its parent calls.
+  Callers occupying less than 1.0% are not shown.
+
+   ticks parent  name
+   7240   34.4%  T _guarded_open_np
+   7106   98.1%    JS: *writeOrBuffer node:internal/streams/writable:550:23
+   7103  100.0%      JS: *_write node:internal/streams/writable:452:16
+   4283   60.3%        JS: *sendCommand /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Redis.js:338:16
+   3682   86.0%          JS: *acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+   3565   96.8%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    116    3.2%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    306    7.1%          JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:79:19
+    306  100.0%            JS: *emitCloseNT node:_http_server:1252:21
+    185    4.3%          JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:101:21
+    178   96.2%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      7    3.8%            JS: +isAllowed /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/tokenBucket.js:37:25
+    107    2.5%          JS: *isAllowed /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/tokenBucket.js:37:25
+    103   96.3%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      4    3.7%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+   2820   39.7%        JS: *log node:internal/console/constructor:410:6
+   2820  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+   2734   97.0%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     86    3.0%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     85    1.2%    JS: *writeGeneric node:internal/stream_base_commons:93:22
+     85  100.0%      JS: *_write node:internal/streams/writable:452:16
+     53   62.4%        JS: *sendCommand /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Redis.js:338:16
+     21   39.6%          JS: *execute /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Script.js:37:12
+     21  100.0%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:101:21
+     16   30.2%          JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:101:21
+      8   50.0%            JS: +isAllowed /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/tokenBucket.js:37:25
+      8   50.0%            JS: +acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+     11   20.8%          JS: *acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+     11  100.0%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      5    9.4%          JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:74:21
+      5  100.0%            JS: +release /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:52:23
+     13   15.3%        JS: *log node:internal/console/constructor:410:6
+     13  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     13  100.0%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     10   11.8%        JS: +<anonymous> node:internal/console/constructor:283:56
+     10  100.0%          JS: +log node:internal/console/constructor:410:6
+     10  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+      9   10.6%        JS: +sendCommand /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Redis.js:338:16
+      6   66.7%          JS: +execute /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Script.js:37:12
+      6  100.0%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:101:21
+      2   22.2%          JS: *execute /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Script.js:37:12
+      2  100.0%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:101:21
+      1   11.1%          JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:74:21
+      1  100.0%            JS: +release /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:52:23
+
+   6226   29.6%  T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+    839   13.5%    JS: *writevGeneric node:internal/stream_base_commons:72:23
+    803   95.7%      JS: *Socket._writeGeneric node:net:1293:42
+    796   99.1%        JS: *clearBuffer node:internal/streams/writable:746:21
+    796  100.0%          JS: *end node:_http_outgoing:1173:45
+    773   97.1%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     20    2.5%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     28    3.3%      JS: *doWrite node:internal/streams/writable:589:17
+     19   67.9%        JS: *clearBuffer node:internal/streams/writable:746:21
+     19  100.0%          JS: *end node:_http_outgoing:1173:45
+     19  100.0%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      9   32.1%        JS: +clearBuffer node:internal/streams/writable:746:21
+      9  100.0%          JS: *end node:_http_outgoing:1173:45
+      6   66.7%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      3   33.3%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    683   11.0%    T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+    316   46.3%      JS: *Command /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Command.js:37:16
+    295   93.4%        JS: *CustomScriptCommand /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Script.js:15:24
+    248   84.1%          JS: *acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+    235   94.8%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     13    5.2%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     25    8.5%          JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:101:21
+     22   88.0%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      2    8.0%            JS: +isAllowed /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/tokenBucket.js:37:25
+      1    4.0%            JS: +acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+     20    6.8%          JS: *isAllowed /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/tokenBucket.js:37:25
+     19   95.0%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      1    5.0%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     21    6.6%        JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:79:19
+     20   95.2%          JS: *emitCloseNT node:_http_server:1252:21
+     20  100.0%            JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+      1    4.8%          JS: *emit node:events:489:44
+      1  100.0%            JS: ^emitCloseNT node:_http_server:1252:21
+    132   19.3%      JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+    107   15.7%      JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     56   52.3%        JS: *emit node:events:489:44
+     56  100.0%          JS: *parserOnIncoming node:_http_server:1267:26
+     53   94.6%            JS: *parserOnHeadersComplete node:_http_common:77:33
+      3    5.4%            JS: +parserOnHeadersComplete node:_http_common:77:33
+     51   47.7%        T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     51  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     50   98.0%            JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+      1    2.0%            JS: +processTicksAndRejections node:internal/process/task_queues:72:35
+     46    6.7%      T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     46  100.0%        JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+     29    4.2%      JS: *setHeader node:_http_outgoing:700:57
+     22   75.9%        JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     18   81.8%          JS: *parserOnIncoming node:_http_server:1267:26
+     18  100.0%            JS: *parserOnHeadersComplete node:_http_common:77:33
+      4   18.2%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+      4  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+      7   24.1%        JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      4   57.1%          JS: *emit node:events:489:44
+      3   75.0%            JS: *parserOnIncoming node:_http_server:1267:26
+      1   25.0%            JS: +parserOnIncoming node:_http_server:1267:26
+      2   28.6%          JS: *parserOnIncoming node:_http_server:1267:26
+      2  100.0%            JS: *parserOnHeadersComplete node:_http_common:77:33
+      1   14.3%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+      1  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     14    2.0%      JS: *returnReply /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/DataHandler.js:50:16
+     14  100.0%        JS: *execute /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/redis-parser/lib/parser.js:491:11
+     14  100.0%          JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/DataHandler.js:25:46
+      8   57.1%            JS: *emit node:events:489:44
+      6   42.9%            JS: *Readable.read node:internal/streams/readable:669:35
+     14    2.0%      JS: *Readable node:internal/streams/readable:335:18
+     14  100.0%        JS: *parserOnHeadersComplete node:_http_common:77:33
+    520    8.4%    JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    366   70.4%      T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+    366  100.0%        T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+    364   99.5%          JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+    103   19.8%      JS: *emit node:events:489:44
+    103  100.0%        JS: *parserOnIncoming node:_http_server:1267:26
+    102   99.0%          JS: *parserOnHeadersComplete node:_http_common:77:33
+     51    9.8%      JS: *parserOnIncoming node:_http_server:1267:26
+     51  100.0%        JS: *parserOnHeadersComplete node:_http_common:77:33
+    482    7.7%    JS: *writeOrBuffer node:internal/streams/writable:550:23
+    464   96.3%      JS: *_write node:internal/streams/writable:452:16
+    290   62.5%        JS: *sendCommand /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Redis.js:338:16
+    253   87.2%          JS: *acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+    240   94.9%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     11    4.3%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     20    6.9%          JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:79:19
+     20  100.0%            JS: *emitCloseNT node:_http_server:1252:21
+     13    4.5%          JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:101:21
+     13  100.0%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      4    1.4%          JS: *isAllowed /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/tokenBucket.js:37:25
+      4  100.0%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    168   36.2%        JS: *log node:internal/console/constructor:410:6
+    168  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+    161   95.8%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      7    4.2%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      6    1.3%        JS: *_send node:_http_outgoing:400:49
+      6  100.0%          JS: *write_ node:_http_outgoing:959:16
+      6  100.0%            JS: *end node:_http_outgoing:1173:45
+     18    3.7%      JS: *_writeRaw node:_http_outgoing:426:19
+     16   88.9%        JS: *write_ node:_http_outgoing:959:16
+     16  100.0%          JS: *end node:_http_outgoing:1173:45
+     16  100.0%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      2   11.1%        JS: *_send node:_http_outgoing:400:49
+      1   50.0%          JS: +write_ node:_http_outgoing:959:16
+      1  100.0%            JS: *end node:_http_outgoing:1173:45
+      1   50.0%          JS: *end node:_http_outgoing:1173:45
+      1  100.0%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    301    4.8%    JS: *sendCommand /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Redis.js:338:16
+    244   81.1%      JS: *acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+    234   95.9%        JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    160   68.4%          JS: *emit node:events:489:44
+    160  100.0%            JS: *parserOnIncoming node:_http_server:1267:26
+     74   31.6%          JS: *parserOnIncoming node:_http_server:1267:26
+     74  100.0%            JS: *parserOnHeadersComplete node:_http_common:77:33
+     10    4.1%        JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      6   60.0%          JS: *emit node:events:489:44
+      4   66.7%            JS: *parserOnIncoming node:_http_server:1267:26
+      2   33.3%            JS: +parserOnIncoming node:_http_server:1267:26
+      4   40.0%          JS: *parserOnIncoming node:_http_server:1267:26
+      4  100.0%            JS: *parserOnHeadersComplete node:_http_common:77:33
+     23    7.6%      JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:79:19
+     23  100.0%        JS: *emitCloseNT node:_http_server:1252:21
+     23  100.0%          JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+     23    7.6%      JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:101:21
+     22   95.7%        JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     22  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     22  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+      1    4.3%        JS: +acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+      1  100.0%          JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      1  100.0%            JS: *parserOnIncoming node:_http_server:1267:26
+     10    3.3%      JS: *isAllowed /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/tokenBucket.js:37:25
+     10  100.0%        JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     10  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     10  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+    230    3.7%    JS: *writeHead node:_http_server:411:19
+    213   92.6%      JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    213  100.0%        T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+    213  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+    212   99.5%            JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+     17    7.4%      JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     17  100.0%        T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     17  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     17  100.0%            JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+    199    3.2%    JS: *acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+    179   89.9%      JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    114   63.7%        JS: *emit node:events:489:44
+    114  100.0%          JS: *parserOnIncoming node:_http_server:1267:26
+    113   99.1%            JS: *parserOnHeadersComplete node:_http_common:77:33
+     65   36.3%        JS: *parserOnIncoming node:_http_server:1267:26
+     65  100.0%          JS: *parserOnHeadersComplete node:_http_common:77:33
+     11    5.5%      T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     11  100.0%        T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     11  100.0%          JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+      8    4.0%      JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      5   62.5%        JS: *emit node:events:489:44
+      5  100.0%          JS: *parserOnIncoming node:_http_server:1267:26
+      5  100.0%            JS: *parserOnHeadersComplete node:_http_common:77:33
+      2   25.0%        JS: +emit node:events:489:44
+      2  100.0%          JS: +parserOnIncoming node:_http_server:1267:26
+      2  100.0%            JS: +parserOnHeadersComplete node:_http_common:77:33
+      1   12.5%        JS: *parserOnIncoming node:_http_server:1267:26
+      1  100.0%          JS: *parserOnHeadersComplete node:_http_common:77:33
+    189    3.0%    JS: *parserOnIncoming node:_http_server:1267:26
+    186   98.4%      JS: *parserOnHeadersComplete node:_http_common:77:33
+      3    1.6%      JS: +parserOnHeadersComplete node:_http_common:77:33
+    152    2.4%    JS: *resOnFinish node:_http_server:1196:21
+    152  100.0%      JS: *onFinish node:_http_outgoing:1158:18
+    152  100.0%        JS: *callback node:internal/streams/writable:766:63
+    152  100.0%          JS: *afterWriteTick node:internal/streams/writable:695:24
+    151   99.3%            JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+    120    1.9%    JS: *get node:_http_incoming:121:16
+    118   98.3%      JS: *parserOnIncoming node:_http_server:1267:26
+    116   98.3%        JS: *parserOnHeadersComplete node:_http_common:77:33
+      2    1.7%        JS: +parserOnHeadersComplete node:_http_common:77:33
+    120    1.9%    JS: *execute /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/redis-parser/lib/parser.js:491:11
+    118   98.3%      JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/DataHandler.js:25:46
+     67   56.8%        JS: *Readable.read node:internal/streams/readable:669:35
+     54   80.6%          JS: *Socket.read node:net:1131:33
+     36   66.7%            JS: *emitReadable_ node:internal/streams/readable:863:23
+     18   33.3%            JS: *flow node:internal/streams/readable:1336:14
+     13   19.4%          JS: +Socket.read node:net:1131:33
+     13  100.0%            JS: *flow node:internal/streams/readable:1336:14
+     49   41.5%        JS: *emit node:events:489:44
+     47   95.9%          JS: *Readable.read node:internal/streams/readable:669:35
+     47  100.0%            JS: *Socket.read node:net:1131:33
+      2    4.1%          JS: +Readable.read node:internal/streams/readable:669:35
+      2  100.0%            JS: +Socket.read node:net:1131:33
+      2    1.7%        JS: +emit node:events:489:44
+      2  100.0%          JS: +Readable.read node:internal/streams/readable:669:35
+      2  100.0%            JS: *Socket.read node:net:1131:33
+      2    1.7%      JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/DataHandler.js:25:46
+      2  100.0%        JS: *Readable.read node:internal/streams/readable:669:35
+      2  100.0%          JS: *Socket.read node:net:1131:33
+      2  100.0%            JS: *flow node:internal/streams/readable:1336:14
+    118    1.9%    JS: *_storeHeader node:_http_outgoing:456:22
+    118  100.0%      JS: *writeHead node:_http_server:411:19
+    117   99.2%        JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    117  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+    117  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+    116    1.9%    JS: *log node:internal/console/constructor:410:6
+    116  100.0%      T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+    111   95.7%        JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    111  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+    111  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+      5    4.3%        JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      5  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+      5  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     91    1.5%    JS: *_write node:internal/streams/writable:452:16
+     55   60.4%      JS: *sendCommand /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/Redis.js:338:16
+     44   80.0%        JS: *acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+     43   97.7%          JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     31   72.1%            JS: *emit node:events:489:44
+     12   27.9%            JS: *parserOnIncoming node:_http_server:1267:26
+      1    2.3%          JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      1  100.0%            JS: *emit node:events:489:44
+      6   10.9%        JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:79:19
+      6  100.0%          JS: *emitCloseNT node:_http_server:1252:21
+      6  100.0%            JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+      3    5.5%        JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:101:21
+      2   66.7%          JS: +acquire /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:26:23
+      2  100.0%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      1   33.3%          JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      1  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+      1    1.8%        JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/node_modules/ioredis/built/utils/Commander.js:74:21
+      1  100.0%          JS: +release /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/distributedConcurrency.js:52:23
+      1  100.0%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:79:19
+      1    1.8%        JS: *isAllowed /Users/chatrapalsinghlodhi/projects/api_gateway/src/rateLimiter/tokenBucket.js:37:25
+      1  100.0%          JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      1  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     32   35.2%      JS: *log node:internal/console/constructor:410:6
+     32  100.0%        T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     31   96.9%          JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     31  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+      1    3.1%          JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      1  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+      4    4.4%      JS: *_send node:_http_outgoing:400:49
+      3   75.0%        JS: *write_ node:_http_outgoing:959:16
+      3  100.0%          JS: *end node:_http_outgoing:1173:45
+      3  100.0%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      1   25.0%        JS: *end node:_http_outgoing:1173:45
+      1  100.0%          JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      1  100.0%            T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     73    1.2%    JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+     68    1.1%    JS: *setHeader node:_http_outgoing:700:57
+     65   95.6%      JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     39   60.0%        T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     39  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+     39  100.0%            JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+     26   40.0%        JS: *parserOnIncoming node:_http_server:1267:26
+     26  100.0%          JS: *parserOnHeadersComplete node:_http_common:77:33
+      3    4.4%      JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      2   66.7%        T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+      2  100.0%          T node::http2::Http2Ping::MemoryInfo(node::MemoryTracker*) const
+      2  100.0%            JS: *processTicksAndRejections node:internal/process/task_queues:72:35
+      1   33.3%        JS: *parserOnIncoming node:_http_server:1267:26
+      1  100.0%          JS: *parserOnHeadersComplete node:_http_common:77:33
+
+   4024   19.1%  T _chmod
+   3988   99.1%    JS: *writevGeneric node:internal/stream_base_commons:72:23
+   3829   96.0%      JS: *Socket._writeGeneric node:net:1293:42
+   3810   99.5%        JS: *clearBuffer node:internal/streams/writable:746:21
+   3796   99.6%          JS: *end node:_http_outgoing:1173:45
+   3648   96.1%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    142    3.7%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+    108    2.7%      JS: *doWrite node:internal/streams/writable:589:17
+     81   75.0%        JS: *clearBuffer node:internal/streams/writable:746:21
+     81  100.0%          JS: *end node:_http_outgoing:1173:45
+     81  100.0%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     27   25.0%        JS: +clearBuffer node:internal/streams/writable:746:21
+     27  100.0%          JS: *end node:_http_outgoing:1173:45
+     23   85.2%            JS: +<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      4   14.8%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+     50    1.3%      JS: +Socket._writeGeneric node:net:1293:42
+     45   90.0%        JS: *clearBuffer node:internal/streams/writable:746:21
+     45  100.0%          JS: *end node:_http_outgoing:1173:45
+     45  100.0%            JS: *<anonymous> /Users/chatrapalsinghlodhi/projects/api_gateway/src/server.js:27:34
+      5   10.0%        JS: +Socket._writev node:net:1330:36
+      5  100.0%          JS: +doWrite node:internal/streams/writable:589:17
+      5  100.0%            JS: +clearBuffer node:internal/streams/writable:746:21
+

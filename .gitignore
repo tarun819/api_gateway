@@ -12,3 +12,4 @@ npm-debug.log*
 # System & OS Files
 .DS_Store
 Thumbs.db
+dump.rdb

@@ -1,4 +1,7 @@
-// benchmarks/run-circuit-breaker.js - Automated state machine verification script
+// benchmarks/run-circuit-breaker.js
+// End-to-end lifecycle test for the Sliding Window Circuit Breaker.
+// Usage: node benchmarks/run-circuit-breaker.js
+
 const http = require('http');
 const config = require('../src/config');
 const { spawn } = require('child_process');
@@ -9,8 +12,7 @@ let gatewayProcess, backendProcess;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const cooldown = () => sleep(2500);
 
-// 1. Client HTTP GET wrapper with 5s timeout fail-safe
-function httpGet(path = '/') {
+function httpGet(path = '/api/users') {
   return new Promise((resolve) => {
     const req = http.get(`http://localhost:${PORT}${path}`, (res) => {
       let body = '';
@@ -39,7 +41,6 @@ async function assert(expected, label) {
   return res;
 }
 
-// 2. Trips circuit breaker sequentially to avoid triggering concurrency limiters
 async function tripCircuit() {
   const n = Math.ceil(config.circuitBreaker.windowSize * config.circuitBreaker.failureRateThreshold);
   for (let i = 1; i <= n; i++) {
@@ -51,7 +52,6 @@ function spawnBackend() {
   backendProcess = spawn('node', ['benchmarks/mockBackend.js', '--port=4001']);
 }
 
-// 3. Process lifecycle manager for isolated test environment
 async function startServers() {
   spawnBackend();
   await sleep(1000);
@@ -66,22 +66,26 @@ function stopServers() {
   if (backendProcess) backendProcess.kill();
 }
 
-// 4. Executes full state lifecycle (CLOSED -> OPEN -> HALF_OPEN -> OPEN -> HALF_OPEN -> CLOSED)
+
+
 async function main() {
   console.log('\n  Circuit Breaker Lifecycle Test\n');
 
   try {
     await startServers();
 
+    // 1. Healthy traffic
     console.log('Step 1: Normal Traffic (CLOSED)');
     await assert(200, 'Backend is healthy');
 
+    // 2. Kill backend → trip circuit
     console.log('\nStep 2: Kill Backend → Trip to OPEN');
     backendProcess.kill();
     await sleep(500);
     await tripCircuit();
     await assert(503, 'Circuit is OPEN, instant 503');
 
+    // 3. Cooldown → probe fails (backend still dead) → back to OPEN
     console.log('\nStep 3: Cooldown → Failed Probe (HALF_OPEN → OPEN)');
     await cooldown();
     let [probe, blocked] = await Promise.all([httpGet(), httpGet()]);
@@ -90,17 +94,19 @@ async function main() {
     if (blocked.status !== 503) throw new Error('probeInFlight logic failed!');
     await assert(503, 'Back to OPEN after failed probe');
 
+    // 4. Restart backend → cooldown → probe succeeds → CLOSED
     console.log('\nStep 4: Restart Backend → Successful Probe (HALF_OPEN → CLOSED)');
     spawnBackend();
     await cooldown();
     await assert(200, 'Probe succeeded, circuit recovering');
 
+    // 5. Verify full recovery
     console.log('\nStep 5: Verify Recovery (CLOSED)');
     await assert(200, 'Traffic flowing normally');
 
-    console.log('\n  ✅ PASSED: CLOSED → OPEN → HALF_OPEN → OPEN → HALF_OPEN → CLOSED\n');
+    console.log('\n   PASSED: CLOSED → OPEN → HALF_OPEN → OPEN → HALF_OPEN → CLOSED\n');
   } catch (err) {
-    console.error('\n  ❌ FAILED:', err.message, '\n');
+    console.error('\n  FAILED:', err.message, '\n');
   } finally {
     stopServers();
   }

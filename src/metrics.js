@@ -1,4 +1,12 @@
-// src/metrics.js - In-memory observability metrics tracker
+// src/metrics.js
+// In-memory metrics counters for the API gateway.
+//
+// This module tracks gateway-level statistics for monitoring and debugging:
+//   - Total requests received
+//   - Requests blocked by rate limiter (429s)
+//   - Redis fallbacks (times we failed-open because Redis was down)
+//   - Requests routed to each backend (shows load balancer distribution)
+
 const startTime = Date.now();
 
 const counters = {
@@ -8,7 +16,7 @@ const counters = {
   requestsPerBackend: {},
 };
 
-// 1. Metric recorders for traffic, rate-limit blocks, and Redis fallbacks
+
 function recordRequest(backendPort) {
   counters.totalRequests++;
   if (backendPort) {
@@ -17,16 +25,23 @@ function recordRequest(backendPort) {
   }
 }
 
+
 function recordBlocked() {
   counters.totalRequests++;
   counters.blockedRequests++;
 }
 
+
 function recordRedisFallback() {
   counters.redisFallbacks++;
 }
 
-// 2. Returns structured snapshot for GET /metrics endpoint
+/**
+ * Returns a snapshot of all metrics, including backend health status.
+ *
+ * @param {object} healthStatus - Passed in from healthCheck module.
+ * @returns {object} The complete metrics snapshot.
+ */
 function getSnapshot(healthStatus) {
   return {
     uptime: Math.floor((Date.now() - startTime) / 1000),
